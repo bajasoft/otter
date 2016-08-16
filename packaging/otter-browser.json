@@ -1,0 +1,13 @@
+{
+  "outputPath": "C:\\develop\\github\\",
+  "inputPath": "C:\\downloads\\otter-browser-win64-weekly131-qtwebengine\\",
+  "sevenZipBinaryPath": "C:\\Program Files\\7-Zip\\7z.exe",
+  "innoBinaryPath": "C:\\Program Files (x86)\\Inno Setup 5\\ISCC.exe",
+  "innoScriptPath": "..\\..\\otter-browser.iss",
+  "msbuildPath": "C:\\Program Files (x86)\\MSBuild\\14.0\\Bin\\MSBuild.exe",
+  "solutionPath": "C:\\develop\\github\\webengine\\otter-browser.sln",
+  "mainVersion": "0.9.09",
+  "contextVersion": "weekly180",
+  "packageName": "otter-browser",
+  "architecture": "win64"
+}
