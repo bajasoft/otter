@@ -55,7 +55,7 @@ function main
     }
     else
     {
-        Write-Host "Inno setup script not found, skiping..." -foregroundcolor red
+        Write-Host "Inno setup script not found, skipping..." -foregroundcolor red
     }
 
 
@@ -71,10 +71,6 @@ function main
             $_ -replace ".*? `: \[$", "`t`t`"$Global:packageName`" `: ["
         } |
         Set-Content $Global:updateConfiguration
-    }
-    else
-    {
-        Write-Host "Update script not found, skiping..." -foregroundcolor red
     }
 
     # Run build if required
@@ -145,7 +141,7 @@ function preparePackages
     }
 
     # Update via Ruby
-    if ((Test-Path $Global:rubyPath) -and (Test-Path $Global:updateScriptPath))
+    if ((Test-Path $Global:rubyPath) -and (Test-Path $Global:updateScriptPath) -and (Test-Path $Global:updateConfiguration))
     {
         Start-Process -NoNewWindow -Wait $Global:rubyPath -ArgumentList $Global:updateScriptPath, $Global:inputPath, $Global:updateConfiguration, $Global:outputPath, "-p", "windows", "-v", $Global:mainVersion
     }
