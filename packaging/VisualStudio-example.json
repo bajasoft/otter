@@ -1,0 +1,21 @@
+{
+  "cmakePath": "C:\\Program Files (x86)\\CMake\\bin\\cmake.exe",
+  "cmakeCompiler": "Visual Studio 14 2015 Win64",
+  "projectPath": "C:\\develop\\github\\otter\\",
+  "solutionPath": "C:\\develop\\github\\webengine\\",
+  "qtPath": "C:\\develop\\Qt\\5.7\\msvc2015_64\\lib\\cmake\\Qt5\\",
+  "qtWebKitPath": "C:\\develop\\Qt\\5.7\\msvc2015_64\\lib\\cmake\\Qt5WebKitWidgets\\",
+  "qtWebEnginePath": "C:\\develop\\Qt\\5.7\\msvc2015_64\\lib\\cmake\\Qt5WebEngineWidgets\\",
+  "qtWinExtrasPath": "C:\\develop\\Qt\\5.7\\msvc2015_64\\lib\\cmake\\Qt5WinExtras\\",
+  "packageOutputPath": "C:\\develop\\github\\",
+  "packageInputPath": "C:\\downloads\\otter-browser-win64-weekly131-qtwebengine\\",
+  "sevenZipBinaryPath": "C:\\Program Files\\7-Zip\\7z.exe",
+  "innoBinaryPath": "C:\\Program Files (x86)\\Inno Setup 5\\ISCC.exe",
+  "innoScriptPath": "..\\..\\otter-browser.iss",
+  "compilerPath": "C:\\Program Files (x86)\\MSBuild\\14.0\\Bin\\MSBuild.exe",
+  "mainVersion": "0.9.09",
+  "contextVersion": "weekly180",
+  "packageName": "otter-browser",
+  "architecture": "win64",
+  "backends": [ "WebEngine" ]
+}

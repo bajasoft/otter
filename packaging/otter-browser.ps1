@@ -2,17 +2,19 @@
 # Description: Build packages with installation
 # Type: script
 # Author: bajasoft <jbajer@gmail.com>
-# Version: 0.3
+# Version: 0.4
 
 # How to run PowerShell scripts: http://technet.microsoft.com/en-us/library/ee176949.aspx
 
 # Command line parameters
-# [-b] - make Release build
-# [-f] - set name of json file to parse
+# [-build] - make Release build
+# [-cmake] - run CMake
+# [-file] - set name of json file to parse. Example: -f name.of.file
 
 Param(
-[switch]$b,
-[string]$f
+[switch]$build,
+[switch]$cmake,
+[string]$file
 )
 
 # Main-function
@@ -20,9 +22,80 @@ function main
 {   
     initGlobalVariables
 
-    if (!($Global:architecture -eq "win64"))
+    # run CMake only when required by user
+    if ($cmake -and (Test-Path $Global:cmakePath))
+    {
+        Write-Host "Running CMake..."
+
+        Get-ChildItem -Path $Global:solutionPath -Include * -File -Recurse | foreach { $_.Delete()}
+
+        $arguments = "-DQt5_DIR:STRING=" + $Global:qtPath + " -DQt5WinExtras_DIR:STRING=" + $Global:qtWinExtrasPath
+
+        If ($Global:backends.Contains("WebKit"))
+        {
+            $arguments += " -DENABLE_QTWEBKIT:BOOL=ON  -DQt5WebKitWidgets_DIR:STRING=" + $global:qtWebKitPath
+        }
+        else
+        {
+            $arguments += " -DENABLE_QTWEBKIT:BOOL=OFF"
+        }
+
+        if ($Global:backends.Contains("WebEngine"))
+        {
+            $arguments += " -DENABLE_QTWEBENGINE:BOOL=ON -DQt5WebEngineWidgets_DIR:STRING=" + $global:qtWebEnginePath
+        }
+        else
+        {
+            $arguments += " -DENABLE_QTWEBENGINE:BOOL=OFF"
+        }
+
+        if ($Global:cmakeCompiler.Contains("MinGW"))
+        {
+            $env:Path += ";" + $Global:compilerPath.Replace((Get-Item $Global:compilerPath).Name, "") + ";" + $Global:cmakePath.Replace((Get-Item $Global:cmakePath).Name, "")
+            $arguments += " -DCMAKE_BUILD_TYPE=RELEASE -DEXECUTABLE_OUTPUT_PATH:STRING=Release"
+
+            if ($Global:architecture -eq "win64")
+            {
+                $arguments += " -DCMAKE_CXX_FLAGS=-m64"
+            }
+            else
+            {
+                $arguments += " -DCMAKE_CXX_FLAGS=-m32"
+            }
+        }
+
+        $arguments += " -G `"" + $Global:cmakeCompiler + "`" " + $Global:projectPath
+
+        # Results from CMake are written to stderr.txt and stdout.txt in script directory
+        Start-Process -NoNewWindow -Wait -WorkingDirectory $Global:solutionPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:cmakePath $arguments
+
+        testResults
+    }
+
+    if ($Global:architecture -ne "win64")
     {
         $Global:architecture = "win32"
+    }
+
+    # Run build if required
+    if ($build -and (Test-Path $Global:compilerPath) -and (Test-Path $Global:solutionPath))
+    {
+        Write-Host "Building solution..."
+
+        if ($Global:cmakeCompiler.Contains("MinGW"))
+        {
+            Start-Process -NoNewWindow -Wait -WorkingDirectory $Global:solutionPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath  -ArgumentList "-j4"
+        }
+        else
+        {
+            Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath -ArgumentList "/p:Configuration=Release", ($Global:solutionPath + "otter-browser.sln")
+        }
+        
+        testResults
+
+        Write-Host "Copy executable..."
+
+        Copy-Item ($Global:solutionPath + "Release/*") $Global:packageInputPath
     }
 
     $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
@@ -46,10 +119,10 @@ function main
             
             $_ -replace "#define MyAppVersion.+", ("#define MyAppVersion `"$Global:mainVersion" + "-" + "$Global:contextVersion`"")`
              -replace "OutputBaseFilename=.+", "OutputBaseFilename=$packageName-setup"`
-             -replace "LicenseFile=.+", ("LicenseFile=$Global:inputPath" + "COPYING")`
-             -replace "OutputDir=.+", "OutputDir=$Global:outputPath"`
+             -replace "LicenseFile=.+", ("LicenseFile=$Global:packageInputPath" + "COPYING")`
+             -replace "OutputDir=.+", "OutputDir=$Global:packageOutputPath"`
              -replace "VersionInfoVersion=.+", "VersionInfoVersion=$Global:mainVersion"`
-             -replace ("Source:.*; + """), ("Source: " + """$Global:inputPath*""" + ";")
+             -replace ("Source:.*; + """), ("Source: " + """$Global:packageInputPath*""" + ";")
         } |
         Set-Content $Global:innoScriptPath
     }
@@ -57,7 +130,6 @@ function main
     {
         Write-Host "Inno setup script not found, skipping..." -foregroundcolor red
     }
-
 
     # Set package name to updater config
     if (Test-Path $Global:updateConfiguration) 
@@ -71,18 +143,6 @@ function main
             $_ -replace ".*? `: \[$", "`t`t`"$Global:packageName`" `: ["
         } |
         Set-Content $Global:updateConfiguration
-    }
-
-    # Run build if required
-    if ($b -and (Test-Path $Global:msbuildPath) -and (Test-Path $Global:solutionPath))
-    {
-        Write-Host "Building solution..."
-
-        Start-Process -NoNewWindow -Wait $Global:msbuildPath -ArgumentList "/p:Configuration=Release", $Global:solutionPath
-
-        Write-Host "Copy executable..."
-
-        Copy-Item ($Global:solutionPath -replace (Get-Item $Global:solutionPath).Name, "Release/*") $Global:inputPath
     }
 
     # Do full build
@@ -99,8 +159,11 @@ function main
         }
 
         # Rename update script with current version/platform
-        Rename-Item ($Global:outputPath + "/otter-browser-update.xml") $updateXml
+        Rename-Item ($Global:packageOutputPath + "/otter-browser-update.xml") $updateXml
     }
+
+    Remove-Item stdout.txt
+    Remove-Item stderr.txt
 
     Write-Host "Finished!"
 }
@@ -112,17 +175,9 @@ function preparePackages
     # Inno Setup
     if ((Test-Path $Global:innoBinaryPath) -and (Test-Path $Global:innoScriptPath))
     {
-         $process = Start-Process -NoNewWindow -Wait -PassThru $Global:innoBinaryPath -ArgumentList $Global:innoScriptPath
+         Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:innoBinaryPath -ArgumentList $Global:innoScriptPath
 
-         if ($process.ExitCode -eq 1)
-         {
-            Write-Host "Invalid arguments for Inno Setup..." -foregroundcolor red
-         }
-         
-         if ($process.ExitCode -eq 2)
-         {
-            Write-Host "Failed to compile setup file..." -foregroundcolor red
-         }
+         testResults
     }
     else
     {
@@ -130,10 +185,15 @@ function preparePackages
     }
 
     # 7Zip
-    if (Test-Path $Global:7ZipBinaryPath)
+    if (Test-Path $Global:zipBinaryPath)
     {
-        Start-Process -NoNewWindow -Wait $Global:7ZipBinaryPath -ArgumentList "a", ($Global:outputPath + $Global:packageName + ".7z"), ($Global:inputPath + "*"), "-mmt4", "-mx9", "-m0=lzma2"
-        Start-Process -NoNewWindow -Wait $Global:7ZipBinaryPath -ArgumentList "a", "-tzip", ($Global:outputPath + $Global:packageName + ".zip"), $Global:inputPath, "-mx5"
+        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:zipBinaryPath -ArgumentList "a", ($Global:packageOutputPath + $Global:packageName + ".7z"), ($Global:packageInputPath + "*"), "-mmt4", "-mx9", "-m0=lzma2"
+        
+        testResults
+        
+        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:zipBinaryPath -ArgumentList "a", "-tzip", ($Global:packageOutputPath + $Global:packageName + ".zip"), $Global:packageInputPath, "-mx5"
+        
+        testResults
     }
     else
     {
@@ -143,11 +203,28 @@ function preparePackages
     # Update via Ruby
     if ((Test-Path $Global:rubyPath) -and (Test-Path $Global:updateScriptPath) -and (Test-Path $Global:updateConfiguration))
     {
-        Start-Process -NoNewWindow -Wait $Global:rubyPath -ArgumentList $Global:updateScriptPath, $Global:inputPath, $Global:updateConfiguration, $Global:outputPath, "-p", "windows", "-v", $Global:mainVersion
+        Write-Host "Building update package..."
+
+        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:rubyPath -ArgumentList $Global:updateScriptPath, $Global:packageInputPath, $Global:updateConfiguration, $Global:packageOutputPath, "-p", "windows", "-v", $Global:mainVersion
+        
+        testResults
     }
-    else
+}
+
+# Prints error from output and closes script
+function testResults
+{
+    $errContent = (Get-Content stderr.txt)
+
+    If ($errContent -ne $Null)
     {
-        Write-Host "Building update skipped, update script or Ruby not found..." -foregroundcolor red
+        Write-Host "`n"
+        
+        $errContent
+        
+        Write-Host "`nExiting due to critical error! Please check stdout.txt for more info" -ForegroundColor Red
+
+        exit
     }
 }
 
@@ -155,24 +232,32 @@ function initGlobalVariables
 {
     Write-Host "Initializing global variables..."
 
-    $jsonFile = if ($f) {$f} else {".\otter-browser.json"}
+    $jsonFile = if ($file) {$file} else {".\otter-browser.json"}
 
     $json = (Get-Content $jsonFile -Raw) | ConvertFrom-Json
-
-    $Global:outputPath = If($json.outputPath) {$json.outputPath} Else {"C:\develop\github\"}
-    $Global:inputPath = If($json.inputPath) {$json.inputPath} Else {"C:\downloads\Otter\"}
+    
+    $Global:cmakePath = If($json.cmakePath) {$json.cmakePath} Else {"C:\Program Files (x86)\CMake\bin\cmake.exe"}
+    $Global:cmakeCompiler = If($json.cmakeCompiler) {$json.cmakeCompiler} Else {"Visual Studio 14 2015 Win64"}
+    $Global:projectPath = If($json.projectPath) {$json.projectPath} Else {"C:\develop\github\otter\"}
+    $Global:qtPath = If($json.qtPath) {$json.qtPath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5\"}
+    $Global:qtWebKitPath = If($json.qtWebKitPath) {$json.qtWebKitPath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5WebKitWidgets\"}
+    $Global:qtWebEnginePath = If($json.qtWebEnginePath) {$json.qtWebEnginePath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5WebEngineWidgets\"}
+    $Global:qtWinExtrasPath = If($json.qtWinExtrasPath) {$json.qtWinExtrasPath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5WinExtras\"}
+    $Global:packageOutputPath = If($json.packageOutputPath) {$json.packageOutputPath} Else {"C:\develop\github\"}
+    $Global:packageInputPath = If($json.packageInputPath) {$json.packageInputPath} Else {"C:\downloads\Otter\"}
     $Global:zipBinaryPath = If($json.zipBinaryPath) {$json.zipBinaryPath} Else {"C:\Program Files\7-Zip\7z.exe"}
     $Global:innoBinaryPath = If($json.innoBinaryPath) {$json.innoBinaryPath} Else {"C:\Program Files (x86)\Inno Setup 5\ISCC.exe"}
     $Global:innoScriptPath = If($json.innoScriptPath) {$json.innoScriptPath} Else {".\otter-browser.iss"}
     $Global:updateScriptPath = If($json.updateScriptPath) {$json.updateScriptPath} Else {".\otter-browser.rb"}
     $Global:rubyPath = If($json.rubyPath) {$json.rubyPath} else {"C:\Ruby22-x64\bin\ruby.exe"}
-    $Global:msbuildPath = If($json.msbuildPath) {$json.msbuildPath} else {"C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"}
-    $Global:solutionPath = If($json.solutionPath) {$json.solutionPath} else {"C:\develop\github\otter-browser\otter.sln"}
+    $Global:compilerPath = If($json.compilerPath) {$json.compilerPath} else {"C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"}
+    $Global:solutionPath = If($json.solutionPath) {$json.solutionPath} else {"C:\develop\github\otter-browser\"}
     $Global:mainVersion = If($json.mainVersion) {$json.mainVersion} Else {"1.0"}
     $Global:contextVersion = If($json.contextVersion) {$json.contextVersion} Else {"dev"}
     $Global:updateConfiguration = If($json.updateConfiguration) {$json.updateConfiguration} Else {".\otter-browser-update-win.json"}
     $Global:architecture = If($json.architecture) {$json.architecture} Else {"64"}
     $Global:packageName = If($json.packageName) {$json.packageName} Else {"otter-browser"}
+    $Global:backends = If($json.backends) {$json.backends} Else {"WebKit"}
 }
 
 # Entry point
