@@ -29,39 +29,9 @@ function main
 
         Get-ChildItem -Path $Global:solutionPath -Include * -File -Recurse | foreach { $_.Delete()}
 
-        $arguments = "-DQt5_DIR:STRING=" + $Global:qtPath + " -DQt5WinExtras_DIR:STRING=" + $Global:qtWinExtrasPath
-
-        If ($Global:backends.Contains("WebKit"))
+        foreach ($argument in $Global:cmakeArguments) # Adding arguments for CMake
         {
-            $arguments += " -DENABLE_QTWEBKIT:BOOL=ON  -DQt5WebKitWidgets_DIR:STRING=" + $global:qtWebKitPath
-        }
-        else
-        {
-            $arguments += " -DENABLE_QTWEBKIT:BOOL=OFF"
-        }
-
-        if ($Global:backends.Contains("WebEngine"))
-        {
-            $arguments += " -DENABLE_QTWEBENGINE:BOOL=ON -DQt5WebEngineWidgets_DIR:STRING=" + $global:qtWebEnginePath
-        }
-        else
-        {
-            $arguments += " -DENABLE_QTWEBENGINE:BOOL=OFF"
-        }
-
-        if ($Global:cmakeCompiler.Contains("MinGW"))
-        {
-            $env:Path += ";" + $Global:compilerPath.Replace((Get-Item $Global:compilerPath).Name, "") + ";" + $Global:cmakePath.Replace((Get-Item $Global:cmakePath).Name, "")
-            $arguments += " -DCMAKE_BUILD_TYPE=RELEASE -DEXECUTABLE_OUTPUT_PATH:STRING=Release"
-
-            if ($Global:architecture -eq "win64")
-            {
-                $arguments += " -DCMAKE_CXX_FLAGS=-m64"
-            }
-            else
-            {
-                $arguments += " -DCMAKE_CXX_FLAGS=-m32"
-            }
+            $arguments += " -" + $argument
         }
 
         $arguments += " -G `"" + $Global:cmakeCompiler + "`" " + $Global:projectPath
@@ -238,11 +208,8 @@ function initGlobalVariables
     
     $Global:cmakePath = If($json.cmakePath) {$json.cmakePath} Else {"C:\Program Files (x86)\CMake\bin\cmake.exe"}
     $Global:cmakeCompiler = If($json.cmakeCompiler) {$json.cmakeCompiler} Else {"Visual Studio 14 2015 Win64"}
+    $Global:cmakeArguments = If($json.cmakeArguments) {$json.cmakeArguments} Else {""}
     $Global:projectPath = If($json.projectPath) {$json.projectPath} Else {"C:\develop\github\otter\"}
-    $Global:qtPath = If($json.qtPath) {$json.qtPath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5\"}
-    $Global:qtWebKitPath = If($json.qtWebKitPath) {$json.qtWebKitPath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5WebKitWidgets\"}
-    $Global:qtWebEnginePath = If($json.qtWebEnginePath) {$json.qtWebEnginePath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5WebEngineWidgets\"}
-    $Global:qtWinExtrasPath = If($json.qtWinExtrasPath) {$json.qtWinExtrasPath} Else {"C:\develop\Qt\5.7\msvc2015_64\lib\cmake\Qt5WinExtras\"}
     $Global:packageOutputPath = If($json.packageOutputPath) {$json.packageOutputPath} Else {"C:\develop\github\"}
     $Global:packageInputPath = If($json.packageInputPath) {$json.packageInputPath} Else {"C:\downloads\Otter\"}
     $Global:zipBinaryPath = If($json.zipBinaryPath) {$json.zipBinaryPath} Else {"C:\Program Files\7-Zip\7z.exe"}
@@ -257,7 +224,6 @@ function initGlobalVariables
     $Global:updateConfiguration = If($json.updateConfiguration) {$json.updateConfiguration} Else {".\otter-browser-update-win.json"}
     $Global:architecture = If($json.architecture) {$json.architecture} Else {"64"}
     $Global:packageName = If($json.packageName) {$json.packageName} Else {"otter-browser"}
-    $Global:backends = If($json.backends) {$json.backends} Else {"WebKit"}
 }
 
 # Entry point
