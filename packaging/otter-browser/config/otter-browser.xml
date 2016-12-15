@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>Otter Browser</Name>
+    <Version>1.0.0</Version>
+    <Title>Otter Browser Installer</Title>
+    <Publisher>Otter Browser</Publisher>
+    <StartMenuDir>Browser</StartMenuDir>
+	<Logo>../resources/icons/otter-browser.ico</Logo>
+    <TargetDir>@ApplicationsDir@/InstallationDirectory</TargetDir>
+	<AllowSpaceInPath>true</AllowSpaceInPath>
+	<RemoteRepositories>
+        <Repository>
+            <Url>http://bajasoft.wz.cz/packages/</Url>
+        </Repository>
+    </RemoteRepositories>
+</Installer>

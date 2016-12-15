@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>Otter Browser</DisplayName>
+    <Description>Controlled by the user, not vice versa</Description>
+    <Version>0.1.0-1</Version>
+    <ReleaseDate>2016-12-21</ReleaseDate>
+    <Licenses>
+        <License name="GNU GENERAL PUBLIC LICENSE" file="COPYING" />
+    </Licenses>
+	<DownloadableArchives>otter-browser.7z</DownloadableArchives>
+    <Default>true</Default>
+	<RequiresAdminRights>true</RequiresAdminRights>
+</Package>
