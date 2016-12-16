@@ -70,67 +70,8 @@ function main
 
     $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
 
-    # Set values to Inno setup script
-    #if (Test-Path $Global:innoScriptPath) 
-    #{
-    #    Write-Host "Preparing Inno setup script..."
-    #
-    #    $content = Get-Content $Global:innoScriptPath
-    #
-    #    $content |
-    #    Select-String -Pattern "ArchitecturesInstallIn64BitMode=x64" -NotMatch |
-    #    Select-String -Pattern "ArchitecturesAllowed=x64" -NotMatch |
-    #    ForEach-Object {
-    #        if ($Global:architecture -eq "win64" -and $_ -match "^DefaultGroupName.+")
-    #        {
-    #            "ArchitecturesInstallIn64BitMode=x64"
-    #            "ArchitecturesAllowed=x64"
-    #        }
-    #        
-    #        $_ -replace "#define MyAppVersion.+", ("#define MyAppVersion `"$Global:mainVersion" + "-" + "$Global:contextVersion`"")`
-    #         -replace "OutputBaseFilename=.+", "OutputBaseFilename=$packageName-setup"`
-    #         -replace "LicenseFile=.+", ("LicenseFile=$Global:packageInputPath" + "COPYING")`
-    #         -replace "OutputDir=.+", "OutputDir=$Global:packageOutputPath"`
-    #         -replace "VersionInfoVersion=.+", "VersionInfoVersion=$Global:mainVersion"`
-    #         -replace ("Source:.*; + """), ("Source: " + """$Global:packageInputPath*""" + ";")
-    #    } |
-    #    Set-Content $Global:innoScriptPath
-    #}
-    #else
-    #{
-    #    Write-Host "Inno setup script not found, skipping..." -foregroundcolor red
-    #}
-
-    # Set package name to updater config
-    #if (Test-Path $Global:updateConfiguration) 
-    #{
-    #    Write-Host "Preparing update script..."
-    #
-    #    $content = Get-Content $Global:updateConfiguration
-    #
-    #    $content |
-    #    ForEach-Object {
-    #        $_ -replace ".*? `: \[$", "`t`t`"$Global:packageName`" `: ["
-    #    } |
-    #    Set-Content $Global:updateConfiguration
-    #}
-
     # Do full build
     preparePackages
-
-    # Prepare XML for updater
-    #if ((Test-Path $Global:rubyPath) -and (Test-Path $Global:updateScriptPath))
-    #{
-    #    $updateXml = ($packageName + ".xml");
-    #
-    #    If (Test-Path $updateXml)
-    #    {
-    #        Remove-Item $updateXml
-    #    }
-    #
-        # Rename update script with current version/platform
-    #    Rename-Item ($Global:packageOutputPath + "/otter-browser-update.xml") $updateXml
-    #}
 
     Remove-Item stdout.txt
     Remove-Item stderr.txt
@@ -149,9 +90,9 @@ function preparePackages
         
         testResults
         
-        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:zipBinaryPath -ArgumentList "a", "-tzip", ($Global:packageOutputPath + $Global:packageName + ".zip"), $Global:packageInputPath, "-mx5"
+        #Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:zipBinaryPath -ArgumentList "a", "-tzip", ($Global:packageOutputPath + $Global:packageName + ".zip"), $Global:packageInputPath, "-mx5"
         
-        testResults
+        #testResults
     }
     else
     {
@@ -159,17 +100,19 @@ function preparePackages
     }
 
     # Installer
-    if ((Test-Path $Global:binnaryCreatorPath) -and (Test-Path $Global:binaryCreatorInputPath))
+    if (Test-Path $Global:binnaryCreatorPath)
     {
-        Remove-Item ($Global:binaryCreatorInputPath + "packages\com.otter.root\data\*")
+        prepareInstallerFiles
 
-        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt ($Global:binnaryCreatorPath + "binarycreator.exe") -ArgumentList "-t", ($Global:binnaryCreatorPath + "installerbase.exe"), "-c", ($Global:binaryCreatorInputPath + "config\otter-browser.xml"), "-p", "packages", $Global:packageName
+        prepareConfig
+
+        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt ($Global:binnaryCreatorPath + "binarycreator.exe") -ArgumentList "-n", "-t", ($Global:binnaryCreatorPath + "installerbase.exe"), "-c", $Global:mainPackageConfig, "-p", ($Global:binaryCreatorInputPath + "packages"), ($Global:packageOutputPath + $Global:packageName)
     
         testResults
 
-        Copy-Item ($Global:packageOutputPath + $Global:packageName + ".7z") ($Global:binaryCreatorInputPath + "packages\com.otter.root\data\")
+        Copy-Item ($Global:packageOutputPath + $Global:packageName + ".7z") $dataPackageFolder
         
-        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt ($Global:binnaryCreatorPath + "repogen.exe") -ArgumentList "--update", "-p", "packages", "repository"
+        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt ($Global:binnaryCreatorPath + "repogen.exe") -ArgumentList "--update", "-p", ($Global:binaryCreatorInputPath + "packages"), ($Global:packageOutputPath + "repository")
     
         testResults
     }
@@ -177,6 +120,55 @@ function preparePackages
     {
         Write-Host "Building installer skipped, QtIF or config files not found..." -foregroundcolor red
     }
+}
+
+#Moves required files to installer and output folder
+function prepareInstallerFiles
+{
+$Global:binaryCreatorInputPath
+
+    if (-Not (Test-Path $Global:binaryCreatorInputPath))
+    {
+        Copy-Item ($Global:projectPath + "packaging\otter-browser") $Global:binaryCreatorInputPath -Recurse
+    }
+
+        if (Test-Path $dataPackageFolder)
+        {
+            Remove-Item ($dataPackageFolder + "*")
+        }
+        else
+        {
+            New-Item $dataPackageFolder -Type Directory
+        }
+
+        $licence = ($Global:binaryCreatorInputPath + "packages\com.otter.root\meta\COPYING")
+
+        if (-Not (Test-Path $licence))
+        {
+            Copy-Item ($Global:projectPath + "COPYING") $licence
+        }
+
+        $icon = ($Global:binaryCreatorInputPath + "config\otter-browser.png")
+
+        if (-Not (Test-Path $icon))
+        {
+            Copy-Item ($Global:projectPath + "resources\icons\otter-browser.png") $icon
+        }
+}
+
+#Sets values to xml config
+function prepareConfig
+{
+    $version = If ($Global:contextVersion -like "*weekly*") {$Global:contextVersion -replace "weekly", ""} Else {"0"}
+
+    [xml]$myXML = Get-Content $Global:otterPackageConfig
+    $myXML.Package.Version = ($Global:mainVersion + "." + $version)
+    $myXML.Package.ReleaseDate = (Get-Date -UFormat "%Y-%m-%d").ToString()
+    $myXML.Package.DownloadableArchives = ($Global:packageName + ".7z")
+
+    #$myXML.Package.Licenses.License.file = ($Global:projectPath + "COPYING")
+
+    $myXML.Save($Global:otterPackageConfig)
 }
 
 # Prints error from output and closes script
@@ -207,18 +199,23 @@ function initGlobalVariables
     $Global:cmakePath = If($json.cmakePath) {$json.cmakePath} Else {"C:\Program Files (x86)\CMake\bin\cmake.exe"}
     $Global:cmakeCompiler = If($json.cmakeCompiler) {$json.cmakeCompiler} Else {"Visual Studio 14 2015 Win64"}
     $Global:cmakeArguments = If($json.cmakeArguments) {$json.cmakeArguments} Else {""}
-    $Global:projectPath = If($json.projectPath) {$json.projectPath} Else {"C:\develop\github\otter\"}
-    $Global:packageOutputPath = If($json.packageOutputPath) {$json.packageOutputPath} Else {"C:\develop\github\"}
-    $Global:packageInputPath = If($json.packageInputPath) {$json.packageInputPath} Else {"C:\downloads\Otter\"}
+    $Global:projectPath = If($json.projectPath) {$json.projectPath} Else {"C:\develop\github\otter\"} # Root path of the project with source codes, resources, cmakefiles etc.
+    $Global:packageOutputPath = If($json.packageOutputPath) {$json.packageOutputPath} Else {"C:\develop\github\"} # Path containing finished packages together with update repository
+    $Global:packageInputPath = If($json.packageInputPath) {$json.packageInputPath} Else {"C:\downloads\Otter\"} # Folder with builded application and all dependencies
     $Global:zipBinaryPath = If($json.zipBinaryPath) {$json.zipBinaryPath} Else {"C:\Program Files\7-Zip\7z.exe"}
     $Global:binnaryCreatorPath = If($json.binnaryCreatorPath) {$json.binnaryCreatorPath} Else {"C:\develop\Qt\QtIFW2.0.3\bin\"}
     $Global:compilerPath = If($json.compilerPath) {$json.compilerPath} else {"C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"}
-    $Global:solutionPath = If($json.solutionPath) {$json.solutionPath} else {"C:\develop\github\otter-browser\"}
+    $Global:solutionPath = If($json.solutionPath) {$json.solutionPath} else {"C:\develop\github\otter-browser\"} # Folder with actual solution to build (mostly separated from project path)
     $Global:mainVersion = If($json.mainVersion) {$json.mainVersion} Else {"1.0"}
     $Global:contextVersion = If($json.contextVersion) {$json.contextVersion} Else {"dev"}
     $Global:architecture = If($json.architecture) {$json.architecture} Else {"64"}
     $Global:packageName = If($json.packageName) {$json.packageName} Else {"otter-browser"}
-    $Global:binaryCreatorInputPath = If($json.binaryCreatorInputPath) {$json.binaryCreatorInputPath} Else {"C:\develop\github\otter-browser\"}
+
+    # Resolve rest of the used paths
+    $Global:binaryCreatorInputPath = ($Global:packageOutputPath + "otter-browser\")
+    $Global:dataPackageFolder = ($Global:binaryCreatorInputPath + "packages\com.otter.root\data\")
+    $Global:mainPackageConfig = ($Global:binaryCreatorInputPath + "config\otter-browser.xml")
+    $Global:otterPackageConfig = ($Global:binaryCreatorInputPath + "packages\com.otter.root\meta\package.xml")
 }
 
 # Entry point

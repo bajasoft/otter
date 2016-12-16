@@ -2,12 +2,13 @@
 <Installer>
     <Name>Otter Browser</Name>
     <Version>1.0.0</Version>
-    <Title>Otter Browser Installer</Title>
+    <Title>Otter Browser</Title>
     <Publisher>Otter Browser</Publisher>
     <StartMenuDir>Browser</StartMenuDir>
-	<Logo>../resources/icons/otter-browser.ico</Logo>
+	<InstallerWindowIcon>otter-browser.png</InstallerWindowIcon>
     <TargetDir>@ApplicationsDir@/InstallationDirectory</TargetDir>
 	<AllowSpaceInPath>true</AllowSpaceInPath>
+	<RepositorySettingsPageVisible>false</RepositorySettingsPageVisible>
 	<RemoteRepositories>
         <Repository>
             <Url>http://bajasoft.wz.cz/packages/</Url>
