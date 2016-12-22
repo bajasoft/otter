@@ -63,7 +63,7 @@ ContentBlockingProfile::ContentBlockingProfile(const QString &name, const QStrin
 
 void ContentBlockingProfile::clear()
 {
-	if (!m_wasLoaded)
+	if (!m_resolver || !m_wasLoaded)
 	{
 		return;
 	}
@@ -150,7 +150,10 @@ void ContentBlockingProfile::updateReady()
 	{
 		m_lastUpdate = QDateTime::currentDateTime();
 
-		m_resolver->clear();
+		if (m_resolver)
+		{
+			m_resolver->clear();
+		}
 
 		loadHeader(getPath());
 
@@ -234,7 +237,7 @@ ContentBlockingManager::CheckResult ContentBlockingProfile::checkUrl(const QUrl 
 {
 	ContentBlockingManager::CheckResult result;
 
-	if (!m_wasLoaded && !loadRules())
+	if (!m_resolver || (!m_wasLoaded && !loadRules()))
 	{
 		return result;
 	}
@@ -249,7 +252,14 @@ QStringList ContentBlockingProfile::getStyleSheet()
 		loadRules();
 	}
 
-	return m_resolver->getStyleSheet();
+	QStringList styleSheets;
+
+	if (m_resolver)
+	{
+		styleSheets = m_resolver->getStyleSheet();
+	}
+
+	return styleSheets;
 }
 
 QStringList ContentBlockingProfile::getStyleSheetBlackList(const QString &domain)
@@ -259,7 +269,14 @@ QStringList ContentBlockingProfile::getStyleSheetBlackList(const QString &domain
 		loadRules();
 	}
 
-	return m_resolver->getStyleSheetBlackList(domain);
+	QStringList styleSheets;
+
+	if (m_resolver)
+	{
+		styleSheets = m_resolver->getStyleSheetBlackList(domain);
+	}
+
+	return styleSheets;
 }
 
 QStringList ContentBlockingProfile::getStyleSheetWhiteList(const QString &domain)
@@ -269,7 +286,14 @@ QStringList ContentBlockingProfile::getStyleSheetWhiteList(const QString &domain
 		loadRules();
 	}
 
-	return m_resolver->getStyleSheetWhiteList(domain);
+	QStringList styleSheets;
+
+	if (m_resolver)
+	{
+		styleSheets = m_resolver->getStyleSheetWhiteList(domain);
+	}
+
+	return styleSheets;
 }
 
 QList<QLocale::Language> ContentBlockingProfile::getLanguages() const
@@ -340,7 +364,12 @@ bool ContentBlockingProfile::loadRules()
 
 	QFile file(getPath());
 
-	return m_resolver->loadRules(file);
+	if (m_resolver)
+	{
+		return m_resolver->loadRules(file);
+	}
+
+	return false;
 }
 
 }

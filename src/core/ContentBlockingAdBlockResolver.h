@@ -3,7 +3,7 @@
 * Copyright (C) 2010 - 2014 David Rosca <nowrep@gmail.com>
 * Copyright (C) 2014 - 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
 * Copyright (C) 2015 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
-
+*
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
@@ -80,7 +80,7 @@ protected:
 		ExactMatch
 	};
 
-	struct ContentBlockingAdBlockRule
+	struct AdBlockRule
 	{
 		QString rule;
 		QStringList blockedDomains;
@@ -90,7 +90,7 @@ protected:
 		bool isException = false;
 		bool needsDomainCheck = false;
 
-		explicit ContentBlockingAdBlockRule(QString ruleValue, QStringList blockedDomainsValue, QStringList allowedDomainsValue, RuleOptions ruleOptionsValue, RuleMatch ruleMatchValue, bool isExceptionValue, bool needsDomainCheckValue) : rule(ruleValue), blockedDomains(blockedDomainsValue), allowedDomains(allowedDomainsValue), ruleOptions(ruleOptionsValue), ruleMatch(ruleMatchValue), isException(isExceptionValue), needsDomainCheck(needsDomainCheckValue)
+		explicit AdBlockRule(QString ruleValue, QStringList blockedDomainsValue, QStringList allowedDomainsValue, RuleOptions ruleOptionsValue, RuleMatch ruleMatchValue, bool isExceptionValue, bool needsDomainCheckValue) : rule(ruleValue), blockedDomains(blockedDomainsValue), allowedDomains(allowedDomainsValue), ruleOptions(ruleOptionsValue), ruleMatch(ruleMatchValue), isException(isExceptionValue), needsDomainCheck(needsDomainCheckValue)
 		{
 		}
 	};
@@ -99,15 +99,15 @@ protected:
 	{
 		QChar value = 0;
 		QVarLengthArray<Node*, 1> children;
-		QVarLengthArray<ContentBlockingAdBlockRule*, 1> rules;
+		QVarLengthArray<AdBlockRule*, 1> rules;
 	};
 
 	void parseRuleLine(QString line);
 	void parseStyleSheetRule(const QStringList &line, QMultiHash<QString, QString> &list);
-	void addRule(ContentBlockingAdBlockRule *rule, const QString &ruleString);
+	void addRule(AdBlockRule *rule, const QString &ruleString);
 	void deleteNode(Node *node);
 	ContentBlockingManager::CheckResult checkUrlSubstring(Node *node, const QString &subString, QString currentRule, NetworkManager::ResourceType resourceType);
-	ContentBlockingManager::CheckResult checkRuleMatch(ContentBlockingAdBlockRule *rule, const QString &currentRule, NetworkManager::ResourceType resourceType);
+	ContentBlockingManager::CheckResult checkRuleMatch(AdBlockRule *rule, const QString &currentRule, NetworkManager::ResourceType resourceType);
 	ContentBlockingManager::CheckResult evaluateRulesInNode(Node *node, const QString &currentRule, NetworkManager::ResourceType resourceType);
 
 private:

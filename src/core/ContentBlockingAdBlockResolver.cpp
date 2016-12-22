@@ -194,7 +194,7 @@ void ContentBlockingAdBlockResolver::parseRuleLine(QString line)
 		}
 	}
 
-	addRule(new ContentBlockingAdBlockRule(rule, blockedDomains, allowedDomains, ruleOptions, ruleMatch, isException, needsDomainCheck), line);
+	addRule(new AdBlockRule(rule, blockedDomains, allowedDomains, ruleOptions, ruleMatch, isException, needsDomainCheck), line);
 }
 
 void ContentBlockingAdBlockResolver::parseStyleSheetRule(const QStringList &line, QMultiHash<QString, QString> &list)
@@ -207,7 +207,7 @@ void ContentBlockingAdBlockResolver::parseStyleSheetRule(const QStringList &line
 	}
 }
 
-void ContentBlockingAdBlockResolver::addRule(ContentBlockingAdBlockRule *rule, const QString &ruleString)
+void ContentBlockingAdBlockResolver::addRule(AdBlockRule *rule, const QString &ruleString)
 {
 	Node *node(m_root);
 
@@ -373,7 +373,7 @@ ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::checkUrlSubs
 	return result;
 }
 
-ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::checkRuleMatch(ContentBlockingAdBlockRule *rule, const QString &currentRule, NetworkManager::ResourceType resourceType)
+ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::checkRuleMatch(AdBlockRule *rule, const QString &currentRule, NetworkManager::ResourceType resourceType)
 {
 	switch (rule->ruleMatch)
 	{
@@ -453,9 +453,10 @@ ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::checkRuleMat
 		}
 	}
 
+	ContentBlockingManager::CheckResult result;
+
 	if (isBlocked)
 	{
-		ContentBlockingManager::CheckResult result;
 		result.rule = rule->rule;
 
 		if (rule->isException)
@@ -476,11 +477,9 @@ ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::checkRuleMat
 		}
 
 		result.isBlocked = true;
-
-		return result;
 	}
 
-	return ContentBlockingManager::CheckResult();
+	return result;
 }
 
 ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType)
