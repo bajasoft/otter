@@ -535,7 +535,7 @@ bool ContentBlockingManager::updateProfile(const QString &profile)
 	{
 		if (m_profiles.at(i)->getName() == profile)
 		{
-			return m_profiles[i]->downloadRules();
+			return m_profiles[i]->update();
 		}
 	}
 

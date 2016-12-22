@@ -102,6 +102,8 @@ set(otter_src
 	src/core/BookmarksImporter.cpp
 	src/core/BookmarksManager.cpp
 	src/core/BookmarksModel.cpp
+	src/core/ContentBlockingAdBlockResolver.cpp
+	src/core/ContentBlockingResolver.cpp
 	src/core/ContentBlockingManager.cpp
 	src/core/ContentBlockingProfile.cpp
 	src/core/Console.cpp
