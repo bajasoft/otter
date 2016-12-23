@@ -37,15 +37,15 @@ class ContentBlockingAdBlockResolver : public ContentBlockingResolver
 public:
 	explicit ContentBlockingAdBlockResolver(QObject *parent = nullptr);
 
-	void clear();
-	ContentBlockingManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
-	QString getTitle() const;
-	QStringList getStyleSheet();
-	QStringList getStyleSheetBlackList(const QString &domain);
-	QStringList getStyleSheetWhiteList(const QString &domain);
-	bool loadRules(QFile &file);
-	bool parseUpdate(QNetworkReply *reply, QFile &file);
-	bool validate(QFile &file);
+	void clear() override;
+	ContentBlockingManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType) override;
+	QString getTitle() const override;
+	QStringList getStyleSheet() override;
+	QStringList getStyleSheetBlackList(const QString &domain) override;
+	QStringList getStyleSheetWhiteList(const QString &domain) override;
+	bool loadRules(QFile &file) override;
+	bool parseUpdate(QNetworkReply *reply, QFile &file) override;
+	bool validate(QFile &file) override;
 
 protected:
 	enum RuleOption : quint32
