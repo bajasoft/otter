@@ -512,21 +512,6 @@ ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::checkUrl(con
 	return result;
 }
 
-QStringList ContentBlockingAdBlockResolver::getStyleSheet()
-{
-	return m_styleSheet;
-}
-
-QStringList ContentBlockingAdBlockResolver::getStyleSheetBlackList(const QString &domain)
-{
-	return m_styleSheetBlackList.values(domain);
-}
-
-QStringList ContentBlockingAdBlockResolver::getStyleSheetWhiteList(const QString &domain)
-{
-	return m_styleSheetWhiteList.values(domain);
-}
-
 ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::evaluateRulesInNode(Node *node, const QString &currentRule, NetworkManager::ResourceType resourceType)
 {
 	ContentBlockingManager::CheckResult result;
@@ -549,6 +534,26 @@ ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::evaluateRule
 	}
 
 	return result;
+}
+
+QString ContentBlockingAdBlockResolver::getTitle()
+{
+	return m_title;
+}
+
+QStringList ContentBlockingAdBlockResolver::getStyleSheet()
+{
+	return m_styleSheet;
+}
+
+QStringList ContentBlockingAdBlockResolver::getStyleSheetBlackList(const QString &domain)
+{
+	return m_styleSheetBlackList.values(domain);
+}
+
+QStringList ContentBlockingAdBlockResolver::getStyleSheetWhiteList(const QString &domain)
+{
+	return m_styleSheetWhiteList.values(domain);
 }
 
 bool ContentBlockingAdBlockResolver::parseUpdate(QNetworkReply *reply, QFile &file)
@@ -612,7 +617,7 @@ bool ContentBlockingAdBlockResolver::loadRules(QFile &file)
 	{
 		return false;
 	}
-	
+
 	QTextStream stream(&file);
 	stream.readLine(); // header
 	
@@ -622,10 +627,38 @@ bool ContentBlockingAdBlockResolver::loadRules(QFile &file)
 	{
 		parseRuleLine(stream.readLine());
 	}
-	
+
 	file.close();
-	
+
 	return true;
+}
+
+bool ContentBlockingAdBlockResolver::validate(QFile &file)
+{
+	QTextStream stream(&file);
+
+	if (stream.readLine().trimmed().startsWith(QLatin1String("[Adblock Plus"), Qt::CaseInsensitive))
+	{
+		while (!stream.atEnd())
+		{
+			QString line(stream.readLine().trimmed());
+
+			if (line.startsWith(QLatin1String("! Title: ")))
+			{
+				m_title = line.remove(QLatin1String("! Title: "));
+
+				break;
+			}
+			else if (!line.startsWith(QLatin1Char('!')))
+			{
+				break;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 }

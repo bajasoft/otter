@@ -39,11 +39,13 @@ public:
 
 	void clear();
 	ContentBlockingManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
+	QString getTitle();
 	QStringList getStyleSheet();
 	QStringList getStyleSheetBlackList(const QString &domain);
 	QStringList getStyleSheetWhiteList(const QString &domain);
 	bool loadRules(QFile &file);
 	bool parseUpdate(QNetworkReply *reply, QFile &file);
+	bool validate(QFile &file);
 
 protected:
 	enum RuleOption : quint32
@@ -115,6 +117,7 @@ private:
 	QString m_requestUrl;
 	QString m_requestHost;
 	QString m_baseUrlHost;
+	QString m_title;
 	QRegularExpression m_domainExpression;
 	QStringList m_styleSheet;
 	QMultiHash<QString, QString> m_styleSheetBlackList;

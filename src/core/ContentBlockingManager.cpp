@@ -102,6 +102,11 @@ void ContentBlockingManager::timerEvent(QTimerEvent *event)
 				profileSettings[QLatin1String("updateUrl")] = profile->getUpdateUrl().url();
 			}
 
+			if (profile->getFlags().testFlag(ContentBlockingProfile::HasTypeFlag))
+			{
+				profileSettings[QLatin1String("type")] = QLatin1String("adBlock");
+			}
+
 			profileSettings[QLatin1String("category")] = categoryTitles.value(profile->getCategory());
 
 			const QList<QLocale::Language> languages(m_profiles.at(i)->getLanguages());
@@ -441,23 +446,27 @@ QVector<ContentBlockingProfile*> ContentBlockingManager::getProfiles()
 			QJsonObject profileSettings(settings.value(profiles.at(i)).toObject());
 			const QJsonObject bundledProfileSettings(bundledSettings.value(profiles.at(i)).toObject());
 			QString title;
+			QString type;
 			QUrl updateUrl;
 			ContentBlockingProfile::ProfileFlags flags(ContentBlockingProfile::NoFlags);
 
 			if (profiles.at(i) == QLatin1String("custom"))
 			{
 				title = tr("Custom Rules");
+				type = QLatin1String("adBlock");
 			}
 			else if (profileSettings.isEmpty())
 			{
 				profileSettings = bundledProfileSettings;
 				updateUrl = QUrl(profileSettings.value(QLatin1String("updateUrl")).toString());
 				title = profileSettings.value(QLatin1String("title")).toString();
+				type = profileSettings.value(QLatin1String("type")).toString();
 			}
 			else
 			{
 				updateUrl = QUrl(profileSettings.value(QLatin1String("updateUrl")).toString());
 				title = profileSettings.value(QLatin1String("title")).toString();
+				type = profileSettings.value(QLatin1String("type")).toString();
 
 				if (updateUrl.isEmpty())
 				{
@@ -476,6 +485,15 @@ QVector<ContentBlockingProfile*> ContentBlockingManager::getProfiles()
 				{
 					flags |= ContentBlockingProfile::HasCustomTitleFlag;
 				}
+
+				if (type.isEmpty())
+				{
+					type = bundledProfileSettings.value(QLatin1String("type")).toString();
+				}
+				else
+				{
+					flags |= ContentBlockingProfile::HasTypeFlag;
+				}
 			}
 
 			const QJsonArray languages(profileSettings.value(QLatin1String("languages")).toArray());
@@ -486,7 +504,7 @@ QVector<ContentBlockingProfile*> ContentBlockingManager::getProfiles()
 				parsedLanguages.append(languages.at(j).toString());
 			}
 
-			ContentBlockingProfile *profile(new ContentBlockingProfile(profiles.at(i), title, updateUrl, QDateTime::fromString(profileSettings.value(QLatin1String("lastUpdate")).toString(), Qt::ISODate), parsedLanguages, profileSettings.value(QLatin1String("updateInterval")).toInt(), categoryTitles.value(profileSettings.value(QLatin1String("category")).toString()), flags, m_instance));
+			ContentBlockingProfile *profile(new ContentBlockingProfile(profiles.at(i), title, type, updateUrl, QDateTime::fromString(profileSettings.value(QLatin1String("lastUpdate")).toString(), Qt::ISODate), parsedLanguages, profileSettings.value(QLatin1String("updateInterval")).toInt(), categoryTitles.value(profileSettings.value(QLatin1String("category")).toString()), flags, m_instance));
 
 			m_profiles.append(profile);
 

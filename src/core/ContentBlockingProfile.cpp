@@ -33,8 +33,7 @@
 namespace Otter
 {
 
-ContentBlockingProfile::ContentBlockingProfile(const QString &name, const QString &title, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent) : QObject(parent),
-	m_resolver(nullptr),
+ContentBlockingProfile::ContentBlockingProfile(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent) : QObject(parent),
 	m_networkReply(nullptr),
 	m_name(name),
 	m_title(title),
@@ -44,8 +43,6 @@ ContentBlockingProfile::ContentBlockingProfile(const QString &name, const QStrin
 	m_category(category),
 	m_flags(flags),
 	m_updateInterval(updateInterval),
-	m_isUpdating(false),
-	m_isEmpty(true),
 	m_wasLoaded(false)
 {
 	if (!languages.isEmpty())
@@ -58,12 +55,24 @@ ContentBlockingProfile::ContentBlockingProfile(const QString &name, const QStrin
 		}
 	}
 
-	loadHeader(getPath());
+	if (type == QLatin1String("adBlock"))
+	{
+		m_resolver = new ContentBlockingAdBlockResolver(this);
+	}
+	else
+	{
+		m_resolver = new ContentBlockingResolver(this);
+	}
+
+	if (validate(getPath()) && m_updateInterval > 0 && (!m_lastUpdate.isValid() || m_lastUpdate.daysTo(QDateTime::currentDateTime()) > m_updateInterval))
+	{
+		update();
+	}
 }
 
 void ContentBlockingProfile::clear()
 {
-	if (!m_resolver || !m_wasLoaded)
+	if (!m_wasLoaded)
 	{
 		return;
 	}
@@ -73,68 +82,43 @@ void ContentBlockingProfile::clear()
 	m_wasLoaded = false;
 }
 
-void ContentBlockingProfile::loadHeader(const QString &path)
+bool ContentBlockingProfile::validate(const QString &path)
 {
 	QFile file(path);
 
 	if (!file.exists())
 	{
-		return;
+		return true;
 	}
 
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
 	{
 		Console::addMessage(QCoreApplication::translate("main", "Failed to open content blocking profile file: %1").arg(file.errorString()), Console::OtherCategory, Console::ErrorLevel, file.fileName());
 
-		return;
+		return false;
 	}
 
-	QTextStream stream(&file);
-
-	if (stream.readLine().trimmed().startsWith(QLatin1String("[Adblock Plus"), Qt::CaseInsensitive))
+	if (!m_resolver->validate(file))
 	{
-		m_resolver = new ContentBlockingAdBlockResolver();
-
-		while (!stream.atEnd())
-		{
-			QString line(stream.readLine().trimmed());
-
-			if (!line.startsWith(QLatin1Char('!')))
-			{
-				m_isEmpty = false;
-
-				break;
-			}
-
-			if (line.startsWith(QLatin1String("! Title: ")) && !m_flags.testFlag(HasCustomTitleFlag))
-			{
-				m_title = line.remove(QLatin1String("! Title: "));
-
-				continue;
-			}
-		}
-	}
-	else
-	{
-		Console::addMessage(QCoreApplication::translate("main", "Failed to load content blocking profile file: invalid header"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
+		Console::addMessage(QCoreApplication::translate("main", "Invalid content blocking profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
 
 		file.close();
 
-		return;
+		return false;
+	}
+
+	if (!m_flags.testFlag(HasCustomTitleFlag))
+	{
+		m_title = m_resolver->getTitle();
 	}
 
 	file.close();
 
-	if (!m_isUpdating && m_updateInterval > 0 && (!m_lastUpdate.isValid() || m_lastUpdate.daysTo(QDateTime::currentDateTime()) > m_updateInterval))
-	{
-		update();
-	}
+	return true;
 }
 
 void ContentBlockingProfile::updateReady()
 {
-	m_isUpdating = false;
-
 	if (!m_networkReply)
 	{
 		return;
@@ -150,12 +134,9 @@ void ContentBlockingProfile::updateReady()
 	{
 		m_lastUpdate = QDateTime::currentDateTime();
 
-		if (m_resolver)
-		{
-			m_resolver->clear();
-		}
+		m_resolver->clear();
 
-		loadHeader(getPath());
+		validate(getPath());
 
 		if (m_wasLoaded)
 		{
@@ -237,7 +218,7 @@ ContentBlockingManager::CheckResult ContentBlockingProfile::checkUrl(const QUrl 
 {
 	ContentBlockingManager::CheckResult result;
 
-	if (!m_resolver || (!m_wasLoaded && !loadRules()))
+	if (!m_wasLoaded && !loadRules())
 	{
 		return result;
 	}
@@ -252,14 +233,7 @@ QStringList ContentBlockingProfile::getStyleSheet()
 		loadRules();
 	}
 
-	QStringList styleSheets;
-
-	if (m_resolver)
-	{
-		styleSheets = m_resolver->getStyleSheet();
-	}
-
-	return styleSheets;
+	return m_resolver->getStyleSheet();
 }
 
 QStringList ContentBlockingProfile::getStyleSheetBlackList(const QString &domain)
@@ -269,14 +243,7 @@ QStringList ContentBlockingProfile::getStyleSheetBlackList(const QString &domain
 		loadRules();
 	}
 
-	QStringList styleSheets;
-
-	if (m_resolver)
-	{
-		styleSheets = m_resolver->getStyleSheetBlackList(domain);
-	}
-
-	return styleSheets;
+	return m_resolver->getStyleSheetBlackList(domain);
 }
 
 QStringList ContentBlockingProfile::getStyleSheetWhiteList(const QString &domain)
@@ -286,14 +253,7 @@ QStringList ContentBlockingProfile::getStyleSheetWhiteList(const QString &domain
 		loadRules();
 	}
 
-	QStringList styleSheets;
-
-	if (m_resolver)
-	{
-		styleSheets = m_resolver->getStyleSheetWhiteList(domain);
-	}
-
-	return styleSheets;
+	return m_resolver->getStyleSheetWhiteList(domain);
 }
 
 QList<QLocale::Language> ContentBlockingProfile::getLanguages() const
@@ -318,7 +278,7 @@ int ContentBlockingProfile::getUpdateInterval() const
 
 bool ContentBlockingProfile::update()
 {
-	if (m_isUpdating)
+	if (m_networkReply && m_networkReply->isRunning())
 	{
 		return false;
 	}
@@ -346,14 +306,12 @@ bool ContentBlockingProfile::update()
 
 	connect(m_networkReply, SIGNAL(finished()), this, SLOT(updateReady()));
 
-	m_isUpdating = true;
-
 	return true;
 }
 
 bool ContentBlockingProfile::loadRules()
 {
-	if (m_isEmpty && !m_updateUrl.isEmpty())
+	if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
 	{
 		update();
 
@@ -364,12 +322,7 @@ bool ContentBlockingProfile::loadRules()
 
 	QFile file(getPath());
 
-	if (m_resolver)
-	{
-		return m_resolver->loadRules(file);
-	}
-
-	return false;
+	return m_resolver->loadRules(file);
 }
 
 }

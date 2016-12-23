@@ -38,7 +38,8 @@ public:
 	{
 		NoFlags = 0,
 		HasCustomTitleFlag = 1,
-		HasCustomUpdateUrlFlag = 2
+		HasCustomUpdateUrlFlag = 2,
+		HasTypeFlag = 4
 	};
 
 	Q_DECLARE_FLAGS(ProfileFlags, ProfileFlag)
@@ -53,7 +54,7 @@ public:
 		RegionalCategory = 16
 	};
 
-	explicit ContentBlockingProfile(const QString &name, const QString &title, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent = nullptr);
+	explicit ContentBlockingProfile(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent = nullptr);
 
 	void clear();
 	void setCategory(const ProfileCategory &category);
@@ -75,7 +76,7 @@ public:
 	bool update();
 
 protected:
-	void loadHeader(const QString &path);
+	bool validate(const QString &path);
 	QString getPath() const;
 	bool loadRules();
 
@@ -93,8 +94,6 @@ private:
 	ProfileCategory m_category;
 	ProfileFlags m_flags;
 	int m_updateInterval;
-	bool m_isUpdating;
-	bool m_isEmpty;
 	bool m_wasLoaded;
 
 signals:

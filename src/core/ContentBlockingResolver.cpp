@@ -32,11 +32,6 @@ void ContentBlockingResolver::clear()
 {
 }
 
-void ContentBlockingResolver::parseRuleLine(QString line)
-{
-	Q_UNUSED(line);
-}
-
 ContentBlockingManager::CheckResult ContentBlockingResolver::checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType)
 {
 	Q_UNUSED(baseUrl);
@@ -44,6 +39,11 @@ ContentBlockingManager::CheckResult ContentBlockingResolver::checkUrl(const QUrl
 	Q_UNUSED(resourceType);
 
 	return ContentBlockingManager::CheckResult();
+}
+
+QString ContentBlockingResolver::getTitle()
+{
+	return QString();
 }
 
 QStringList ContentBlockingResolver::getStyleSheet()
@@ -85,6 +85,11 @@ bool ContentBlockingResolver::resolveDomainExceptions(const QString &url, const 
 		}
 	}
 
+	return false;
+}
+
+bool ContentBlockingResolver::validate(QFile &file)
+{
 	return false;
 }
 

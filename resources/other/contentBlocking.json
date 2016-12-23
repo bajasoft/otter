@@ -3,60 +3,70 @@
 	{
 		"category": "advertisements",
 		"title": "AakList (Anti-Adblock Killer)",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt"
 	},
 	"advertisements.antiadblockfilters":
 	{
 		"category": "advertisements",
 		"title": "Adblock Warning Removal List",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/antiadblockfilters.txt"
 	},
 	"advertisements.easylist":
 	{
 		"category": "advertisements",
 		"title": "EasyList",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easylist.txt"
 	},
 	"advertisements.easylistnoelemhide":
 	{
 		"category": "advertisements",
 		"title": "EasyList without element hiding rules",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easylist_noelemhide.txt"
 	},
 	"annoyance.fanboy-annoyance":
 	{
 		"category": "annoyance",
 		"title": "Fanboy's Annoyance List",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/fanboy-annoyance.txt"
 	},
 	"annoyance.obtrusive":
 	{
 		"category": "annoyance",
 		"title": "Prebake - Filter Obtrusive Cookie Notices",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/liamja/Prebake/master/obtrusive.txt"
 	},
 	"other.fanboy-ultimate":
 	{
 		"category": "other",
 		"title": "Fanboy+Easylist-Merged Ultimate List‎",
+		"type": "adBlock",
 		"updateUrl": "https://www.fanboy.co.nz/r/fanboy-ultimate.txt"
 	},
 	"privacy.easyprivacy":
 	{
 		"category": "privacy",
 		"title": "EasyPrivacy",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easyprivacy.txt"
 	},
 	"privacy.enhancedstats":
 	{
 		"category": "privacy",
 		"title": "Fanboy's Enhanced Tracking List",
+		"type": "adBlock",
 		"updateUrl": "https://www.fanboy.co.nz/enhancedstats.txt"
 	},
 	"regional.arabic":
 	{
 		"category": "regional",
 		"title": "Arabic",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/Liste_AR.txt",
 		"languages": 
 		[
@@ -67,6 +77,7 @@
 	{
 		"category": "regional",
 		"title": "Bulgarian",
+		"type": "adBlock",
 		"updateUrl": "http://stanev.org/abp/adblock_bg.txt",
 		"languages":
 		[
@@ -77,6 +88,7 @@
 	{
 		"category": "regional",
 		"title": "Czech and Slovak",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/tomasko126/easylistczechandslovak/master/filters.txt",
 		"languages":
 		[
@@ -88,6 +100,7 @@
 	{
 		"category": "regional",
 		"title": "Schacks Adblock Plus liste",
+		"type": "adBlock",
 		"updateUrl": "https://adblock.dk/block.csv",
 		"languages":
 		[
@@ -98,6 +111,7 @@
 	{
 		"category": "regional",
 		"title": "EasyList Dutch",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easylistdutch.txt",
 		"languages":
 		[
@@ -108,6 +122,7 @@
 	{
 		"category": "regional",
 		"title": "Eesti saitidele kohandatud filter",
+		"type": "adBlock",
 		"updateUrl": "http://adblock.ee/list.php",
 		"languages":
 		[
@@ -118,6 +133,7 @@
 	{
 		"category": "regional",
 		"title": "Liste FR",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/liste_fr.txt",
 		"languages":
 		[
@@ -128,6 +144,7 @@
 	{
 		"category": "regional",
 		"title": "EasyList Germany",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easylistgermany.txt",
 		"languages":
 		[
@@ -138,6 +155,7 @@
 	{
 		"category": "regional",
 		"title": "Greek AdBlock Filter",
+		"type": "adBlock",
 		"updateUrl": "https://www.void.gr/kargig/void-gr-filters.txt",
 		"languages":
 		[
@@ -148,6 +166,7 @@
 	{
 		"category": "regional",
 		"title": "Hebrew",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/easylist/EasyListHebrew/master/EasyListHebrew.txt",
 		"languages":
 		[
@@ -158,6 +177,7 @@
 	{
 		"category": "regional",
 		"title": "hufilter",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/szpeter80/hufilter/master/hufilter.txt",
 		"languages":
 		[
@@ -168,6 +188,7 @@
 	{
 		"category": "regional",
 		"title": "EasyList China",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easylistchina.txt",
 		"languages":
 		[
@@ -178,6 +199,7 @@
 	{
 		"category": "regional",
 		"title": "Icelandic ABP List‎",
+		"type": "adBlock",
 		"updateUrl": "http://adblock.gardar.net/is.abp.txt",
 		"languages":
 		[
@@ -188,6 +210,7 @@
 	{
 		"category": "regional",
 		"title": "Indonesian",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/heradhis/indonesianadblockrules/master/subscriptions/abpindo.txt",
 		"languages":
 		[
@@ -198,6 +221,7 @@
 	{
 		"category": "regional",
 		"title": "EasyList Italy",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easylistitaly.txt",
 		"languages":
 		[
@@ -208,6 +232,7 @@
 	{
 		"category": "regional",
 		"title": "Korean Adblock List",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/gfmaster/adblock-korea-contrib/master/filter.txt",
 		"languages":
 		[
@@ -218,6 +243,7 @@
 	{
 		"category": "regional",
 		"title": "EasyList Lithuania",
+		"type": "adBlock",
 		"updateUrl": "http://margevicius.lt/easylistlithuania.txt",
 		"languages":
 		[
@@ -228,6 +254,7 @@
 	{
 		"category": "regional",
 		"title": "Latvian List",
+		"type": "adBlock",
 		"updateUrl": "https://notabug.org/latvian-list/adblock-latvian/raw/master/lists/latvian-list.txt",
 		"languages":
 		[
@@ -238,6 +265,7 @@
 	{
 		"category": "regional",
 		"title": "Adblock & uBlock polish filters",
+		"type": "adBlock",
 		"updateUrl": "https://raw.githubusercontent.com/MajkiIT/polish-ads-filter/master/polish-adblock-filters/adblock.txt",
 		"languages":
 		[
@@ -248,6 +276,7 @@
 	{
 		"category": "regional",
 		"title": "RU AdList",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/advblock.txt",
 		"languages":
 		[
@@ -258,6 +287,7 @@
 	{
 		"category": "regional",
 		"title": "BitBlock List",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/bitblock.txt",
 		"languages":
 		[
@@ -268,6 +298,7 @@
 	{
 		"category": "regional",
 		"title": "EasyList Spanish",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/easylistspanish.txt",
 		"languages":
 		[
@@ -278,6 +309,7 @@
 	{
 		"category": "regional",
 		"title": "Fanboy's Swedish",
+		"type": "adBlock",
 		"updateUrl": "https://www.fanboy.co.nz/fanboy-swedish.txt",
 		"languages":
 		[
@@ -288,12 +320,14 @@
 	{
 		"category": "social",
 		"title": "Anti-Facebook List",
+		"type": "adBlock",
 		"updateUrl": "https://www.fanboy.co.nz/fanboy-antifacebook.txt"
 	},
 	"social.fanboy-social":
 	{
 		"category": "social",
 		"title": "Fanboy's Social Blocking List",
+		"type": "adBlock",
 		"updateUrl": "https://easylist-downloads.adblockplus.org/fanboy-social.txt"
 	}
 }
