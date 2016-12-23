@@ -536,7 +536,7 @@ ContentBlockingManager::CheckResult ContentBlockingAdBlockResolver::evaluateRule
 	return result;
 }
 
-QString ContentBlockingAdBlockResolver::getTitle()
+QString ContentBlockingAdBlockResolver::getTitle() const
 {
 	return m_title;
 }

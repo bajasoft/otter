@@ -39,7 +39,7 @@ public:
 
 	void clear();
 	ContentBlockingManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
-	QString getTitle();
+	QString getTitle() const;
 	QStringList getStyleSheet();
 	QStringList getStyleSheetBlackList(const QString &domain);
 	QStringList getStyleSheetWhiteList(const QString &domain);

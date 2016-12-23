@@ -76,9 +76,9 @@ public:
 	bool update();
 
 protected:
-	bool validate(const QString &path);
 	QString getPath() const;
 	bool loadRules();
+	bool validate(const QString &path);
 
 protected slots:
 	void updateReady();

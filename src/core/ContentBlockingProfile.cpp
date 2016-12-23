@@ -82,41 +82,6 @@ void ContentBlockingProfile::clear()
 	m_wasLoaded = false;
 }
 
-bool ContentBlockingProfile::validate(const QString &path)
-{
-	QFile file(path);
-
-	if (!file.exists())
-	{
-		return true;
-	}
-
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-	{
-		Console::addMessage(QCoreApplication::translate("main", "Failed to open content blocking profile file: %1").arg(file.errorString()), Console::OtherCategory, Console::ErrorLevel, file.fileName());
-
-		return false;
-	}
-
-	if (!m_resolver->validate(file))
-	{
-		Console::addMessage(QCoreApplication::translate("main", "Invalid content blocking profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
-
-		file.close();
-
-		return false;
-	}
-
-	if (!m_flags.testFlag(HasCustomTitleFlag))
-	{
-		m_title = m_resolver->getTitle();
-	}
-
-	file.close();
-
-	return true;
-}
-
 void ContentBlockingProfile::updateReady()
 {
 	if (!m_networkReply)
@@ -276,6 +241,22 @@ int ContentBlockingProfile::getUpdateInterval() const
 	return m_updateInterval;
 }
 
+bool ContentBlockingProfile::loadRules()
+{
+	if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
+	{
+		update();
+
+		return false;
+	}
+
+	m_wasLoaded = true;
+
+	QFile file(getPath());
+
+	return m_resolver->loadRules(file);
+}
+
 bool ContentBlockingProfile::update()
 {
 	if (m_networkReply && m_networkReply->isRunning())
@@ -309,20 +290,39 @@ bool ContentBlockingProfile::update()
 	return true;
 }
 
-bool ContentBlockingProfile::loadRules()
+bool ContentBlockingProfile::validate(const QString &path)
 {
-	if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
+	QFile file(path);
+
+	if (!file.exists())
 	{
-		update();
+		return true;
+	}
+
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+	{
+		Console::addMessage(QCoreApplication::translate("main", "Failed to open content blocking profile file: %1").arg(file.errorString()), Console::OtherCategory, Console::ErrorLevel, file.fileName());
 
 		return false;
 	}
 
-	m_wasLoaded = true;
+	if (!m_resolver->validate(file))
+	{
+		Console::addMessage(QCoreApplication::translate("main", "Invalid content blocking profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
 
-	QFile file(getPath());
+		file.close();
 
-	return m_resolver->loadRules(file);
+		return false;
+	}
+
+	if (!m_flags.testFlag(HasCustomTitleFlag))
+	{
+		m_title = m_resolver->getTitle();
+	}
+
+	file.close();
+
+	return true;
 }
 
 }

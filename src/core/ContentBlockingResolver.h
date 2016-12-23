@@ -38,7 +38,7 @@ public:
 
 	virtual void clear();
 	virtual ContentBlockingManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
-	virtual QString getTitle();
+	virtual QString getTitle() const;
 	virtual QStringList getStyleSheet();
 	virtual QStringList getStyleSheetBlackList(const QString &domain);
 	virtual QStringList getStyleSheetWhiteList(const QString &domain);
@@ -47,7 +47,7 @@ public:
 	virtual bool validate(QFile &file);
 
 protected:
-	virtual bool resolveDomainExceptions(const QString &url, const QStringList &ruleList);
+	bool resolveDomainExceptions(const QString &url, const QStringList &ruleList);
 };
 
 }

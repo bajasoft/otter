@@ -41,7 +41,7 @@ ContentBlockingManager::CheckResult ContentBlockingResolver::checkUrl(const QUrl
 	return ContentBlockingManager::CheckResult();
 }
 
-QString ContentBlockingResolver::getTitle()
+QString ContentBlockingResolver::getTitle() const
 {
 	return QString();
 }
