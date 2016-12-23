@@ -70,18 +70,6 @@ ContentBlockingProfile::ContentBlockingProfile(const QString &name, const QStrin
 	}
 }
 
-void ContentBlockingProfile::clear()
-{
-	if (!m_wasLoaded)
-	{
-		return;
-	}
-
-	m_resolver->clear();
-
-	m_wasLoaded = false;
-}
-
 void ContentBlockingProfile::updateReady()
 {
 	if (!m_networkReply)
@@ -99,11 +87,11 @@ void ContentBlockingProfile::updateReady()
 	{
 		m_lastUpdate = QDateTime::currentDateTime();
 
-		m_resolver->clear();
+		bool wasCleared(clear());
 
 		validate(getPath());
 
-		if (m_wasLoaded)
+		if (wasCleared)
 		{
 			loadRules();
 		}
@@ -241,6 +229,20 @@ int ContentBlockingProfile::getUpdateInterval() const
 	return m_updateInterval;
 }
 
+bool ContentBlockingProfile::clear()
+{
+	if (!m_wasLoaded)
+	{
+		return false;
+	}
+
+	m_resolver->clear();
+
+	m_wasLoaded = false;
+
+	return true;
+}
+
 bool ContentBlockingProfile::loadRules()
 {
 	if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
@@ -317,7 +319,12 @@ bool ContentBlockingProfile::validate(const QString &path)
 
 	if (!m_flags.testFlag(HasCustomTitleFlag))
 	{
-		m_title = m_resolver->getTitle();
+		const QString title(m_resolver->getTitle());
+
+		if (!title.isEmpty())
+		{
+			m_title = m_resolver->getTitle();
+		}
 	}
 
 	file.close();

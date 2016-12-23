@@ -56,7 +56,6 @@ public:
 
 	explicit ContentBlockingProfile(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent = nullptr);
 
-	void clear();
 	void setCategory(const ProfileCategory &category);
 	void setTitle(const QString &title);
 	void setUpdateInterval(int interval);
@@ -73,6 +72,7 @@ public:
 	ProfileCategory getCategory() const;
 	ProfileFlags getFlags() const;
 	int getUpdateInterval() const;
+	bool clear();
 	bool update();
 
 protected:
