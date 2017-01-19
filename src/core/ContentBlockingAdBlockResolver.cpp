@@ -69,21 +69,21 @@ void ContentBlockingAdBlockResolver::parseRuleLine(QString line)
 		return;
 	}
 
-	if (line.contains(QLatin1String("##")))
-	{
-		if (ContentBlockingManager::getCosmeticFiltersMode() != ContentBlockingManager::NoFiltersMode)
-		{
-			parseStyleSheetRule(line.split(QLatin1String("##")), m_styleSheetBlackList);
-		}
-
-		return;
-	}
-
 	if (line.contains(QLatin1String("#@#")))
 	{
 		if (ContentBlockingManager::getCosmeticFiltersMode() != ContentBlockingManager::NoFiltersMode)
 		{
 			parseStyleSheetRule(line.split(QLatin1String("#@#")), m_styleSheetWhiteList);
+		}
+
+		return;
+	}
+
+	if (line.contains(QLatin1String("##")))
+	{
+		if (ContentBlockingManager::getCosmeticFiltersMode() != ContentBlockingManager::NoFiltersMode)
+		{
+			parseStyleSheetRule(line.split(QLatin1String("##")), m_styleSheetBlackList);
 		}
 
 		return;
