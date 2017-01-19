@@ -235,7 +235,7 @@ void ContentBlockingAdBlockResolver::addRule(AdBlockRule *rule, const QString &r
 			Node *newNode(new Node());
 			newNode->value = value;
 
-			if (value == QChar('^'))
+			if (value == QLatin1Char('^'))
 			{
 				node->children.insert(0, newNode);
 			}
