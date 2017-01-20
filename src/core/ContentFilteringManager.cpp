@@ -126,7 +126,7 @@ void ContentFilteringManager::timerEvent(QTimerEvent *event)
 			settings[profile->getName()] = profileSettings;
 		}
 
-		QFile file(SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering.json")));
+		QFile file(SessionsManager::getWritableDataPath(QLatin1String("contentFiltering.json")));
 
 		if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
 		{
@@ -394,7 +394,7 @@ QVector<ContentFilteringProfile*> ContentFilteringManager::getProfiles()
 		QStringList profiles;
 		const QList<QFileInfo> existingProfiles(QDir(SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering"))).entryInfoList(QStringList(QLatin1String("*.txt")), QDir::Files));
 		QJsonObject bundledSettings;
-		QFile bundledFile(SessionsManager::getReadableDataPath(QLatin1String("ContentFiltering.json"), true));
+		QFile bundledFile(SessionsManager::getReadableDataPath(QLatin1String("contentFiltering.json"), true));
 
 		if (bundledFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		{
@@ -430,7 +430,7 @@ QVector<ContentFilteringProfile*> ContentFilteringManager::getProfiles()
 		m_profiles.reserve(profiles.count());
 
 		QJsonObject settings;
-		QFile file(SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering.json")));
+		QFile file(SessionsManager::getWritableDataPath(QLatin1String("contentFiltering.json")));
 
 		if (file.open(QIODevice::ReadOnly | QIODevice::Text))
 		{

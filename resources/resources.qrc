@@ -129,7 +129,7 @@
         <file>menu/menuButton.json</file>
         <file>menu/webWidget.json</file>
         <file>mouse/default.ini</file>
-        <file>other/contentBlocking.json</file>
+        <file>other/contentFiltering.json</file>
         <file>other/handlers.ini</file>
         <file>other/notifications.ini</file>
         <file>other/syntaxHighlighting.json</file>
