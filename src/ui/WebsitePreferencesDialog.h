@@ -48,7 +48,7 @@ protected:
 
 protected slots:
 	void buttonClicked(QAbstractButton *button);
-	void updateContentBlockingProfile(const QString &name);
+	void updateContentFilteringProfile(const QString &name);
 	void updateValues(bool checked = false);
 	void valueChanged();
 

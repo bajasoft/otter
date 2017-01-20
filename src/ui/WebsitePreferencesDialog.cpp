@@ -20,9 +20,9 @@
 **************************************************************************/
 
 #include "WebsitePreferencesDialog.h"
-#include "preferences/ContentBlockingIntervalDelegate.h"
-#include "../core/ContentBlockingManager.h"
-#include "../core/ContentBlockingProfile.h"
+#include "preferences/ContentFilteringIntervalDelegate.h"
+#include "../core/ContentFilteringManager.h"
+#include "../core/ContentFilteringProfile.h"
 #include "../core/NetworkManagerFactory.h"
 #include "../core/SettingsManager.h"
 #include "../core/SessionsManager.h"
@@ -164,7 +164,7 @@ WebsitePreferencesDialog::WebsitePreferencesDialog(const QUrl &url, const QList<
 	m_ui->enableFullScreenOverrideCheckBox->setChecked(SettingsManager::hasOverride(url, SettingsManager::Browser_EnableFullScreenOption));
 	m_ui->sendReferrerOverrideCheckBox->setChecked(SettingsManager::hasOverride(url, SettingsManager::Network_EnableReferrerOption));
 	m_ui->userAgentOverrideCheckBox->setChecked(SettingsManager::hasOverride(url, SettingsManager::Network_UserAgentOption));
-	m_ui->contentBlockingProfilesOverrideCheckBox->setChecked(SettingsManager::hasOverride(url, SettingsManager::ContentBlocking_ProfilesOption));
+	m_ui->ContentFilteringProfilesOverrideCheckBox->setChecked(SettingsManager::hasOverride(url, SettingsManager::ContentFiltering_ProfilesOption));
 
 	updateValues();
 
@@ -190,9 +190,9 @@ WebsitePreferencesDialog::WebsitePreferencesDialog(const QUrl &url, const QList<
 	}
 
 	connect(m_ui->userStyleSheetFilePathWidget, SIGNAL(pathChanged(QString)), this, SLOT(valueChanged()));
-	connect(m_ui->contentBlockingProfilesViewWidget, SIGNAL(modified()), this, SLOT(valueChanged()));
+	connect(m_ui->ContentFilteringProfilesViewWidget, SIGNAL(modified()), this, SLOT(valueChanged()));
 	connect(m_ui->enableCustomRulesCheckBox, SIGNAL(toggled(bool)), this, SLOT(valueChanged()));
-	connect(ContentBlockingManager::getInstance(), SIGNAL(profileModified(QString)), this, SLOT(updateContentBlockingProfile(QString)));
+	connect(ContentFilteringManager::getInstance(), SIGNAL(profileModified(QString)), this, SLOT(updateContentFilteringProfile(QString)));
 	connect(m_ui->buttonBox, SIGNAL(clicked(QAbstractButton*)), this, SLOT(buttonClicked(QAbstractButton*)));
 }
 
@@ -213,7 +213,7 @@ void WebsitePreferencesDialog::changeEvent(QEvent *event)
 
 void WebsitePreferencesDialog::buttonClicked(QAbstractButton *button)
 {
-	QStringList contentBlockingProfiles;
+	QStringList ContentFilteringProfiles;
 	QUrl url;
 	url.setHost(m_ui->websiteLineEdit->text());
 
@@ -242,30 +242,30 @@ void WebsitePreferencesDialog::buttonClicked(QAbstractButton *button)
 			SettingsManager::setValue(SettingsManager::Network_EnableReferrerOption, (m_ui->sendReferrerOverrideCheckBox->isChecked() ? m_ui->sendReferrerCheckBox->isChecked() : QVariant()), url);
 			SettingsManager::setValue(SettingsManager::Network_UserAgentOption, (m_ui->userAgentOverrideCheckBox->isChecked() ? m_ui->userAgentComboBox->currentData(Qt::UserRole).toString() : QVariant()), url);
 
-			if (m_ui->contentBlockingProfilesOverrideCheckBox->isChecked())
+			if (m_ui->ContentFilteringProfilesOverrideCheckBox->isChecked())
 			{
-				for (int i = 0; i < m_ui->contentBlockingProfilesViewWidget->getRowCount(); ++i)
+				for (int i = 0; i < m_ui->ContentFilteringProfilesViewWidget->getRowCount(); ++i)
 				{
-					const QModelIndex categoryIndex(m_ui->contentBlockingProfilesViewWidget->getIndex(i));
+					const QModelIndex categoryIndex(m_ui->ContentFilteringProfilesViewWidget->getIndex(i));
 
-					for (int j = 0; j < m_ui->contentBlockingProfilesViewWidget->getRowCount(categoryIndex); ++j)
+					for (int j = 0; j < m_ui->ContentFilteringProfilesViewWidget->getRowCount(categoryIndex); ++j)
 					{
-						const QModelIndex entryIndex(m_ui->contentBlockingProfilesViewWidget->getIndex(j, 0, categoryIndex));
+						const QModelIndex entryIndex(m_ui->ContentFilteringProfilesViewWidget->getIndex(j, 0, categoryIndex));
 
 						if (entryIndex.data(Qt::CheckStateRole).toBool())
 						{
-							contentBlockingProfiles.append(entryIndex.data(Qt::UserRole).toString());
+							ContentFilteringProfiles.append(entryIndex.data(Qt::UserRole).toString());
 						}
 					}
 				}
 
 				if (m_ui->enableCustomRulesCheckBox->isChecked())
 				{
-					contentBlockingProfiles.append(QLatin1String("custom"));
+					ContentFilteringProfiles.append(QLatin1String("custom"));
 				}
 			}
 
-			SettingsManager::setValue(SettingsManager::ContentBlocking_ProfilesOption, (contentBlockingProfiles.isEmpty() ? QVariant() : contentBlockingProfiles), url);
+			SettingsManager::setValue(SettingsManager::ContentFiltering_ProfilesOption, (ContentFilteringProfiles.isEmpty() ? QVariant() : ContentFilteringProfiles), url);
 
 			accept();
 
@@ -284,29 +284,29 @@ void WebsitePreferencesDialog::buttonClicked(QAbstractButton *button)
 	}
 }
 
-void WebsitePreferencesDialog::updateContentBlockingProfile(const QString &name)
+void WebsitePreferencesDialog::updateContentFilteringProfile(const QString &name)
 {
-	ContentBlockingProfile *profile(ContentBlockingManager::getProfile(name));
+	ContentFilteringProfile *profile(ContentFilteringManager::getProfile(name));
 
 	if (!profile)
 	{
 		return;
 	}
 
-	for (int i = 0; i < m_ui->contentBlockingProfilesViewWidget->getRowCount(); ++i)
+	for (int i = 0; i < m_ui->ContentFilteringProfilesViewWidget->getRowCount(); ++i)
 	{
-		const QModelIndex categoryIndex(m_ui->contentBlockingProfilesViewWidget->getIndex(i));
+		const QModelIndex categoryIndex(m_ui->ContentFilteringProfilesViewWidget->getIndex(i));
 
-		for (int j = 0; j < m_ui->contentBlockingProfilesViewWidget->getRowCount(categoryIndex); ++j)
+		for (int j = 0; j < m_ui->ContentFilteringProfilesViewWidget->getRowCount(categoryIndex); ++j)
 		{
-			const QModelIndex entryIndex(m_ui->contentBlockingProfilesViewWidget->getIndex(j, 0, categoryIndex));
+			const QModelIndex entryIndex(m_ui->ContentFilteringProfilesViewWidget->getIndex(j, 0, categoryIndex));
 
 			if (entryIndex.data(Qt::UserRole).toString() == name)
 			{
-				ContentBlockingProfile *profile(ContentBlockingManager::getProfile(name));
+				ContentFilteringProfile *profile(ContentFilteringManager::getProfile(name));
 
-				m_ui->contentBlockingProfilesViewWidget->setData(entryIndex, profile->getTitle(), Qt::DisplayRole);
-				m_ui->contentBlockingProfilesViewWidget->setData(entryIndex.sibling(j, 2), Utils::formatDateTime(profile->getLastUpdate()), Qt::DisplayRole);
+				m_ui->ContentFilteringProfilesViewWidget->setData(entryIndex, profile->getTitle(), Qt::DisplayRole);
+				m_ui->ContentFilteringProfilesViewWidget->setData(entryIndex.sibling(j, 2), Utils::formatDateTime(profile->getLastUpdate()), Qt::DisplayRole);
 
 				return;
 			}
@@ -377,15 +377,15 @@ void WebsitePreferencesDialog::updateValues(bool checked)
 	m_ui->sendReferrerCheckBox->setChecked(SettingsManager::getValue(SettingsManager::Network_EnableReferrerOption, (m_ui->sendReferrerOverrideCheckBox->isChecked() ? url : QUrl())).toBool());
 	m_ui->userAgentComboBox->setCurrentIndex(m_ui->userAgentComboBox->findData(SettingsManager::getValue(SettingsManager::Network_UserAgentOption, (m_ui->userAgentOverrideCheckBox->isChecked() ? url : QUrl())).toString()));
 
-	const QStringList contentBlockingProfiles(SettingsManager::getValue(SettingsManager::ContentBlocking_ProfilesOption, url).toStringList());
+	const QStringList ContentFilteringProfiles(SettingsManager::getValue(SettingsManager::ContentFiltering_ProfilesOption, url).toStringList());
 
-	m_ui->contentBlockingProfilesViewWidget->setModel(ContentBlockingManager::createModel(this, contentBlockingProfiles));
-	m_ui->contentBlockingProfilesViewWidget->setItemDelegateForColumn(1, new ContentBlockingIntervalDelegate(this));
-	m_ui->contentBlockingProfilesViewWidget->setViewMode(ItemViewWidget::TreeViewMode);
-	m_ui->contentBlockingProfilesViewWidget->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-	m_ui->contentBlockingProfilesViewWidget->expandAll();
+	m_ui->ContentFilteringProfilesViewWidget->setModel(ContentFilteringManager::createModel(this, ContentFilteringProfiles));
+	m_ui->ContentFilteringProfilesViewWidget->setItemDelegateForColumn(1, new ContentFilteringIntervalDelegate(this));
+	m_ui->ContentFilteringProfilesViewWidget->setViewMode(ItemViewWidget::TreeViewMode);
+	m_ui->ContentFilteringProfilesViewWidget->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+	m_ui->ContentFilteringProfilesViewWidget->expandAll();
 
-	m_ui->enableCustomRulesCheckBox->setChecked(contentBlockingProfiles.contains("custom"));
+	m_ui->enableCustomRulesCheckBox->setChecked(ContentFilteringProfiles.contains("custom"));
 
 	m_updateOverride = true;
 }
@@ -399,9 +399,9 @@ void WebsitePreferencesDialog::valueChanged()
 		return;
 	}
 
-	if (widget == m_ui->contentBlockingProfilesViewWidget || widget == m_ui->enableCustomRulesCheckBox)
+	if (widget == m_ui->ContentFilteringProfilesViewWidget || widget == m_ui->enableCustomRulesCheckBox)
 	{
-		m_ui->contentBlockingProfilesOverrideCheckBox->setChecked(true);
+		m_ui->ContentFilteringProfilesOverrideCheckBox->setChecked(true);
 
 		return;
 	}

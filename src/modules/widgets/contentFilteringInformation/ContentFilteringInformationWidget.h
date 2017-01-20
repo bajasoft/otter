@@ -1,7 +1,7 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
-* Copyright (C) 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2016 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 *
 **************************************************************************/
 
-#ifndef OTTER_CONTENTBLOCKINGINFORMATIONWIDGET_H
-#define OTTER_CONTENTBLOCKINGINFORMATIONWIDGET_H
+#ifndef OTTER_CONTENTFILTERINGINFORMATIONWIDGET_H
+#define OTTER_CONTENTFILTERINGINFORMATIONWIDGET_H
 
 #include "../../../core/NetworkManager.h"
 #include "../../../ui/ToolButtonWidget.h"
@@ -29,12 +29,12 @@ namespace Otter
 
 class Window;
 
-class ContentBlockingInformationWidget : public ToolButtonWidget
+class ContentFilteringInformationWidget : public ToolButtonWidget
 {
 	Q_OBJECT
 
 public:
-	explicit ContentBlockingInformationWidget(Window *window, const ActionsManager::ActionEntryDefinition &definition, QWidget *parent = nullptr);
+	explicit ContentFilteringInformationWidget(Window *window, const ActionsManager::ActionEntryDefinition &definition, QWidget *parent = nullptr);
 
 	QString getText() const override;
 	QIcon getIcon() const override;
@@ -46,7 +46,7 @@ protected:
 protected slots:
 	void clear();
 	void openElement(QAction *action);
-	void toggleContentBlocking();
+	void toggleContentFiltering();
 	void toggleOption(QAction *action);
 	void populateElementsMenu();
 	void populateProfilesMenu();
@@ -59,7 +59,7 @@ private:
 	QMenu *m_profilesMenu;
 	QIcon m_icon;
 	int m_amount;
-	bool m_isContentBlockingEnabled;
+	bool m_isContentFilteringEnabled;
 };
 
 }

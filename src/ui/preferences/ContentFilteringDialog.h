@@ -1,6 +1,7 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
-* Copyright (C) 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2013 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
+* Copyright (C) 2014 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,8 +18,8 @@
 *
 **************************************************************************/
 
-#ifndef CONTENTBLOCKINGPROFILEDIALOG
-#define CONTENTBLOCKINGPROFILEDIALOG
+#ifndef OTTER_ContentFilteringDIALOG_H
+#define OTTER_ContentFilteringDIALOG_H
 
 #include "../Dialog.h"
 
@@ -27,33 +28,39 @@ namespace Otter
 
 namespace Ui
 {
-	class ContentBlockingProfileDialog;
+	class ContentFilteringDialog;
 }
 
-class ContentBlockingProfile;
+class ContentFilteringProfile;
 
-class ContentBlockingProfileDialog : public Dialog
+class ContentFilteringDialog : public Dialog
 {
 	Q_OBJECT
 
 public:
-	explicit ContentBlockingProfileDialog(QWidget *parent = nullptr, ContentBlockingProfile *profile = nullptr);
-	~ContentBlockingProfileDialog();
-
-	ContentBlockingProfile* getProfile();
+	explicit ContentFilteringDialog(QWidget *parent = nullptr);
+	~ContentFilteringDialog();
 
 protected:
 	void changeEvent(QEvent *event);
+	void updateModel(ContentFilteringProfile *profile, bool isNewOrMoved);
 
 protected slots:
+	void addProfile();
+	void editProfile();
+	void updateProfile();
+	void updateProfilesActions();
+	void addRule();
+	void editRule();
+	void removeRule();
+	void updateRulesActions();
+	void updateProfile(const QString &name);
 	void save();
 
 private:
-	ContentBlockingProfile *m_profile;
-	Ui::ContentBlockingProfileDialog *m_ui;
+	Ui::ContentFilteringDialog *m_ui;
 };
 
 }
 
 #endif
-

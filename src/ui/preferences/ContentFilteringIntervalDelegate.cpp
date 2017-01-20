@@ -18,7 +18,7 @@
 *
 **************************************************************************/
 
-#include "ContentBlockingIntervalDelegate.h"
+#include "ContentFilteringIntervalDelegate.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtWidgets/QSpinBox>
@@ -26,11 +26,11 @@
 namespace Otter
 {
 
-ContentBlockingIntervalDelegate::ContentBlockingIntervalDelegate(QObject *parent) : ItemDelegate(parent)
+ContentFilteringIntervalDelegate::ContentFilteringIntervalDelegate(QObject *parent) : ItemDelegate(parent)
 {
 }
 
-void ContentBlockingIntervalDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
+void ContentFilteringIntervalDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
 	Q_UNUSED(option)
 	Q_UNUSED(index)
@@ -38,7 +38,7 @@ void ContentBlockingIntervalDelegate::updateEditorGeometry(QWidget *editor, cons
 	editor->setGeometry(option.rect);
 }
 
-void ContentBlockingIntervalDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
+void ContentFilteringIntervalDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
 	QSpinBox *widget(qobject_cast<QSpinBox*>(editor));
 
@@ -48,13 +48,13 @@ void ContentBlockingIntervalDelegate::setModelData(QWidget *editor, QAbstractIte
 	}
 }
 
-QWidget* ContentBlockingIntervalDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
+QWidget* ContentFilteringIntervalDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
 	Q_UNUSED(option)
 
 	QSpinBox *widget(new QSpinBox(parent));
-	widget->setSuffix(QCoreApplication::translate("Otter::ContentBlockingIntervalDelegate", " day(s)"));
-	widget->setSpecialValueText(QCoreApplication::translate("Otter::ContentBlockingIntervalDelegate", "Never"));
+	widget->setSuffix(QCoreApplication::translate("Otter::ContentFilteringIntervalDelegate", " day(s)"));
+	widget->setSpecialValueText(QCoreApplication::translate("Otter::ContentFilteringIntervalDelegate", "Never"));
 	widget->setMinimum(0);
 	widget->setMaximum(365);
 	widget->setValue(index.data(Qt::DisplayRole).toInt());
@@ -62,7 +62,7 @@ QWidget* ContentBlockingIntervalDelegate::createEditor(QWidget *parent, const QS
 	return widget;
 }
 
-QString ContentBlockingIntervalDelegate::displayText(const QVariant &value, const QLocale &locale) const
+QString ContentFilteringIntervalDelegate::displayText(const QVariant &value, const QLocale &locale) const
 {
 	Q_UNUSED(locale)
 
@@ -73,7 +73,7 @@ QString ContentBlockingIntervalDelegate::displayText(const QVariant &value, cons
 
 	const int updateInterval(value.toInt());
 
-	return ((updateInterval > 0) ? QCoreApplication::translate("Otter::ContentBlockingIntervalDelegate", "%n day(s)", "", updateInterval) : QCoreApplication::translate("Otter::ContentBlockingIntervalDelegate", "Never"));
+	return ((updateInterval > 0) ? QCoreApplication::translate("Otter::ContentFilteringIntervalDelegate", "%n day(s)", "", updateInterval) : QCoreApplication::translate("Otter::ContentFilteringIntervalDelegate", "Never"));
 }
 
 }

@@ -1,7 +1,7 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2013 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
-* Copyright (C) 2014 - 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2014 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,17 +18,17 @@
 *
 **************************************************************************/
 
-#include "ContentBlockingDialog.h"
-#include "ContentBlockingIntervalDelegate.h"
-#include "ContentBlockingProfileDialog.h"
+#include "ContentFilteringDialog.h"
+#include "ContentFilteringIntervalDelegate.h"
+#include "ContentFilteringProfileDialog.h"
 #include "../../core/Console.h"
-#include "../../core/ContentBlockingManager.h"
-#include "../../core/ContentBlockingProfile.h"
+#include "../../core/ContentFilteringManager.h"
+#include "../../core/ContentFilteringProfile.h"
 #include "../../core/SessionsManager.h"
 #include "../../core/SettingsManager.h"
 #include "../../core/Utils.h"
 
-#include "ui_ContentBlockingDialog.h"
+#include "ui_ContentFilteringDialog.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QSettings>
@@ -36,15 +36,15 @@
 namespace Otter
 {
 
-ContentBlockingDialog::ContentBlockingDialog(QWidget *parent) : Dialog(parent),
-	m_ui(new Ui::ContentBlockingDialog)
+ContentFilteringDialog::ContentFilteringDialog(QWidget *parent) : Dialog(parent),
+	m_ui(new Ui::ContentFilteringDialog)
 {
 	m_ui->setupUi(this);
 
-	const QStringList globalProfiles(SettingsManager::getValue(SettingsManager::ContentBlocking_ProfilesOption).toStringList());
+	const QStringList globalProfiles(SettingsManager::getValue(SettingsManager::ContentFiltering_ProfilesOption).toStringList());
 
-	m_ui->profilesViewWidget->setModel(ContentBlockingManager::createModel(this, globalProfiles));
-	m_ui->profilesViewWidget->setItemDelegateForColumn(1, new ContentBlockingIntervalDelegate(this));
+	m_ui->profilesViewWidget->setModel(ContentFilteringManager::createModel(this, globalProfiles));
+	m_ui->profilesViewWidget->setItemDelegateForColumn(1, new ContentFilteringIntervalDelegate(this));
 	m_ui->profilesViewWidget->setViewMode(ItemViewWidget::TreeViewMode);
 	m_ui->profilesViewWidget->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 	m_ui->profilesViewWidget->expandAll();
@@ -52,13 +52,13 @@ ContentBlockingDialog::ContentBlockingDialog(QWidget *parent) : Dialog(parent),
 	m_ui->cosmeticFiltersComboBox->addItem(tr("Domain specific only"), QLatin1String("domainOnly"));
 	m_ui->cosmeticFiltersComboBox->addItem(tr("None"), QLatin1String("none"));
 
-	const int cosmeticFiltersIndex(m_ui->cosmeticFiltersComboBox->findData(SettingsManager::getValue(SettingsManager::ContentBlocking_CosmeticFiltersModeOption).toString()));
+	const int cosmeticFiltersIndex(m_ui->cosmeticFiltersComboBox->findData(SettingsManager::getValue(SettingsManager::ContentFiltering_CosmeticFiltersModeOption).toString()));
 
 	m_ui->cosmeticFiltersComboBox->setCurrentIndex((cosmeticFiltersIndex < 0) ? 0 : cosmeticFiltersIndex);
 	m_ui->enableCustomRulesCheckBox->setChecked(globalProfiles.contains(QLatin1String("custom")));
 
 	QStandardItemModel *customRulesModel(new QStandardItemModel(this));
-	QFile file(SessionsManager::getWritableDataPath("contentBlocking/custom.txt"));
+	QFile file(SessionsManager::getWritableDataPath("ContentFiltering/custom.txt"));
 
 	if (file.open(QIODevice::ReadOnly | QIODevice::Text))
 	{
@@ -80,9 +80,9 @@ ContentBlockingDialog::ContentBlockingDialog(QWidget *parent) : Dialog(parent),
 	}
 
 	m_ui->customRulesViewWidget->setModel(customRulesModel);
-	m_ui->enableWildcardsCheckBox->setChecked(SettingsManager::getValue(SettingsManager::ContentBlocking_EnableWildcardsOption).toBool());
+	m_ui->enableWildcardsCheckBox->setChecked(SettingsManager::getValue(SettingsManager::ContentFiltering_EnableWildcardsOption).toBool());
 
-	connect(ContentBlockingManager::getInstance(), SIGNAL(profileModified(QString)), this, SLOT(updateProfile(QString)));
+	connect(ContentFilteringManager::getInstance(), SIGNAL(profileModified(QString)), this, SLOT(updateProfile(QString)));
 	connect(m_ui->profilesViewWidget->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)), this, SLOT(updateProfilesActions()));
 	connect(m_ui->updateProfileButton, SIGNAL(clicked(bool)), this, SLOT(updateProfile()));
 	connect(m_ui->addProfileButton, SIGNAL(clicked(bool)), this, SLOT(addProfile()));
@@ -98,12 +98,12 @@ ContentBlockingDialog::ContentBlockingDialog(QWidget *parent) : Dialog(parent),
 	updateRulesActions();
 }
 
-ContentBlockingDialog::~ContentBlockingDialog()
+ContentFilteringDialog::~ContentFilteringDialog()
 {
 	delete m_ui;
 }
 
-void ContentBlockingDialog::changeEvent(QEvent *event)
+void ContentFilteringDialog::changeEvent(QEvent *event)
 {
 	QDialog::changeEvent(event);
 
@@ -113,9 +113,9 @@ void ContentBlockingDialog::changeEvent(QEvent *event)
 	}
 }
 
-void ContentBlockingDialog::addProfile()
+void ContentFilteringDialog::addProfile()
 {
-	ContentBlockingProfileDialog dialog(this);
+	ContentFilteringProfileDialog dialog(this);
 
 	if (dialog.exec() == QDialog::Accepted)
 	{
@@ -123,15 +123,15 @@ void ContentBlockingDialog::addProfile()
 	}
 }
 
-void ContentBlockingDialog::editProfile()
+void ContentFilteringDialog::editProfile()
 {
 	const QModelIndex index(m_ui->profilesViewWidget->currentIndex().sibling(m_ui->profilesViewWidget->currentIndex().row(), 0));
-	ContentBlockingProfile *profile(ContentBlockingManager::getProfile(index.data(Qt::UserRole).toString()));
+	ContentFilteringProfile *profile(ContentFilteringManager::getProfile(index.data(Qt::UserRole).toString()));
 
 	if (profile)
 	{
-		const ContentBlockingProfile::ProfileCategory category(profile->getCategory());
-		ContentBlockingProfileDialog dialog(this, profile);
+		const ContentFilteringProfile::ProfileCategory category(profile->getCategory());
+		ContentFilteringProfileDialog dialog(this, profile);
 
 		if (dialog.exec() == QDialog::Accepted)
 		{
@@ -140,17 +140,17 @@ void ContentBlockingDialog::editProfile()
 	}
 }
 
-void ContentBlockingDialog::updateProfile()
+void ContentFilteringDialog::updateProfile()
 {
 	const QModelIndex index(m_ui->profilesViewWidget->currentIndex().sibling(m_ui->profilesViewWidget->currentIndex().row(), 0));
 
 	if (index.isValid())
 	{
-		ContentBlockingManager::updateProfile(index.data(Qt::UserRole).toString());
+		ContentFilteringManager::updateProfile(index.data(Qt::UserRole).toString());
 	}
 }
 
-void ContentBlockingDialog::updateProfilesActions()
+void ContentFilteringDialog::updateProfilesActions()
 {
 	const QModelIndex index(m_ui->profilesViewWidget->currentIndex().sibling(m_ui->profilesViewWidget->currentIndex().row(), 0));
 
@@ -158,19 +158,19 @@ void ContentBlockingDialog::updateProfilesActions()
 	m_ui->updateProfileButton->setEnabled(index.isValid() && index.data(Qt::UserRole + 1).toUrl().isValid());
 }
 
-void ContentBlockingDialog::addRule()
+void ContentFilteringDialog::addRule()
 {
 	m_ui->customRulesViewWidget->insertRow();
 
 	editRule();
 }
 
-void ContentBlockingDialog::editRule()
+void ContentFilteringDialog::editRule()
 {
 	m_ui->customRulesViewWidget->edit(m_ui->customRulesViewWidget->getIndex(m_ui->customRulesViewWidget->getCurrentRow()));
 }
 
-void ContentBlockingDialog::removeRule()
+void ContentFilteringDialog::removeRule()
 {
 	m_ui->customRulesViewWidget->removeRow();
 	m_ui->customRulesViewWidget->setFocus();
@@ -178,7 +178,7 @@ void ContentBlockingDialog::removeRule()
 	updateRulesActions();
 }
 
-void ContentBlockingDialog::updateRulesActions()
+void ContentFilteringDialog::updateRulesActions()
 {
 	m_ui->tabWidget->setTabEnabled(1, m_ui->enableCustomRulesCheckBox->isChecked());
 
@@ -188,7 +188,7 @@ void ContentBlockingDialog::updateRulesActions()
 	m_ui->removeRuleButton->setEnabled(isEditable);
 }
 
-void ContentBlockingDialog::updateModel(ContentBlockingProfile *profile, bool isNewOrMoved)
+void ContentFilteringDialog::updateModel(ContentFilteringProfile *profile, bool isNewOrMoved)
 {
 	if (isNewOrMoved)
 	{
@@ -228,9 +228,9 @@ void ContentBlockingDialog::updateModel(ContentBlockingProfile *profile, bool is
 	m_ui->profilesViewWidget->setData(QModelIndex(currentIndex.sibling(currentIndex.row(), 2)), profile->getLastUpdate(), Qt::DisplayRole);
 }
 
-void ContentBlockingDialog::updateProfile(const QString &name)
+void ContentFilteringDialog::updateProfile(const QString &name)
 {
-	ContentBlockingProfile *profile(ContentBlockingManager::getProfile(name));
+	ContentFilteringProfile *profile(ContentFilteringManager::getProfile(name));
 
 	if (!profile)
 	{
@@ -247,12 +247,12 @@ void ContentBlockingDialog::updateProfile(const QString &name)
 
 			if (entryIndex.data(Qt::UserRole).toString() == name)
 			{
-				ContentBlockingProfile *profile(ContentBlockingManager::getProfile(name));
+				ContentFilteringProfile *profile(ContentFilteringManager::getProfile(name));
 
-				ContentBlockingProfile::ProfileCategory category(profile->getCategory());
+				ContentFilteringProfile::ProfileCategory category(profile->getCategory());
 				QString title(profile->getTitle());
 
-				if (category == ContentBlockingProfile::RegionalCategory)
+				if (category == ContentFilteringProfile::RegionalCategory)
 				{
 					const QList<QLocale::Language> languages(profile->getLanguages());
 					QStringList languageNames;
@@ -274,7 +274,7 @@ void ContentBlockingDialog::updateProfile(const QString &name)
 	}
 }
 
-void ContentBlockingDialog::save()
+void ContentFilteringDialog::save()
 {
 	QStringList profiles;
 
@@ -287,7 +287,7 @@ void ContentBlockingDialog::save()
 			const QModelIndex entryIndex(m_ui->profilesViewWidget->getIndex(j, 0, categoryIndex));
 			const QModelIndex intervalIndex(m_ui->profilesViewWidget->getIndex(j, 1, categoryIndex));
 			const QString name(entryIndex.data(Qt::UserRole).toString());
-			ContentBlockingProfile *profile(ContentBlockingManager::getProfile(name));
+			ContentFilteringProfile *profile(ContentFilteringManager::getProfile(name));
 
 			if (intervalIndex.data(Qt::EditRole).toInt() != profile->getUpdateInterval())
 			{
@@ -303,9 +303,9 @@ void ContentBlockingDialog::save()
 
 	if (m_ui->enableCustomRulesCheckBox->isChecked())
 	{
-		QDir().mkpath(SessionsManager::getWritableDataPath(QLatin1String("contentBlocking")));
+		QDir().mkpath(SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering")));
 
-		QFile file(SessionsManager::getWritableDataPath("contentBlocking/custom.txt"));
+		QFile file(SessionsManager::getWritableDataPath("ContentFiltering/custom.txt"));
 
 		if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
 		{
@@ -322,7 +322,7 @@ void ContentBlockingDialog::save()
 
 			file.close();
 
-			ContentBlockingProfile *profile(ContentBlockingManager::getProfile(QLatin1String("custom")));
+			ContentFilteringProfile *profile(ContentFilteringManager::getProfile(QLatin1String("custom")));
 
 			if (profile)
 			{
@@ -330,18 +330,18 @@ void ContentBlockingDialog::save()
 			}
 			else
 			{
-				profile = new ContentBlockingProfile(QLatin1String("custom"), tr("Custom Rules"), QUrl(), QDateTime(), QList<QString>(), 0, ContentBlockingProfile::OtherCategory, ContentBlockingProfile::NoFlags);
+				profile = new ContentFilteringProfile(QLatin1String("custom"), tr("Custom Rules"), QLatin1String("adBlock"), QUrl(), QDateTime(), QList<QString>(), 0, ContentFilteringProfile::OtherCategory, ContentFilteringProfile::NoFlags);
 
-				ContentBlockingManager::addProfile(profile);
+				ContentFilteringManager::addProfile(profile);
 			}
 
 			profiles.append(QLatin1String("custom"));
 		}
 	}
 
-	SettingsManager::setValue(SettingsManager::ContentBlocking_ProfilesOption, profiles);
-	SettingsManager::setValue(SettingsManager::ContentBlocking_EnableWildcardsOption, m_ui->enableWildcardsCheckBox->isChecked());
-	SettingsManager::setValue(SettingsManager::ContentBlocking_CosmeticFiltersModeOption, m_ui->cosmeticFiltersComboBox->currentData().toString());
+	SettingsManager::setValue(SettingsManager::ContentFiltering_ProfilesOption, profiles);
+	SettingsManager::setValue(SettingsManager::ContentFiltering_EnableWildcardsOption, m_ui->enableWildcardsCheckBox->isChecked());
+	SettingsManager::setValue(SettingsManager::ContentFiltering_CosmeticFiltersModeOption, m_ui->cosmeticFiltersComboBox->currentData().toString());
 
 	close();
 }

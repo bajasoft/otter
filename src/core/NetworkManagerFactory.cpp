@@ -20,7 +20,7 @@
 
 #include "NetworkManagerFactory.h"
 #include "AddonsManager.h"
-#include "ContentBlockingManager.h"
+#include "ContentFilteringManager.h"
 #include "CookieJar.h"
 #include "NetworkCache.h"
 #include "NetworkManager.h"
@@ -75,7 +75,7 @@ void NetworkManagerFactory::createInstance(QObject *parent)
 
 		m_instance = new NetworkManagerFactory(parent);
 
-		ContentBlockingManager::createInstance(m_instance);
+		ContentFilteringManager::createInstance(m_instance);
 	}
 }
 

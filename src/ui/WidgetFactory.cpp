@@ -25,7 +25,7 @@
 #include "../modules/widgets/action/NavigationActionWidget.h"
 #include "../modules/widgets/address/AddressWidget.h"
 #include "../modules/widgets/bookmark/BookmarkWidget.h"
-#include "../modules/widgets/contentBlockingInformation/ContentBlockingInformationWidget.h"
+#include "../modules/widgets/ContentFilteringInformation/ContentFilteringInformationWidget.h"
 #include "../modules/widgets/menuButton/MenuButtonWidget.h"
 #include "../modules/widgets/panelChooser/PanelChooserWidget.h"
 #include "../modules/widgets/progressInformation/ProgressInformationWidget.h"
@@ -70,9 +70,9 @@ QWidget* createToolBarItem(const ActionsManager::ActionEntryDefinition &definiti
 		return new AddressWidget(window, parent);
 	}
 
-	if (definition.action == QLatin1String("ContentBlockingInformationWidget"))
+	if (definition.action == QLatin1String("ContentFilteringInformationWidget"))
 	{
-		return new ContentBlockingInformationWidget(window, definition, parent);
+		return new ContentFilteringInformationWidget(window, definition, parent);
 	}
 
 	if (definition.action == QLatin1String("MenuButtonWidget"))

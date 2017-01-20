@@ -102,8 +102,8 @@ set(otter_src
 	src/core/BookmarksImporter.cpp
 	src/core/BookmarksManager.cpp
 	src/core/BookmarksModel.cpp
-	src/core/ContentBlockingManager.cpp
-	src/core/ContentBlockingProfile.cpp
+	src/core/ContentFilteringManager.cpp
+	src/core/ContentFilteringProfile.cpp
 	src/core/Console.cpp
 	src/core/CookieJar.cpp
 	src/core/FileSystemCompleterModel.cpp
@@ -206,9 +206,9 @@ set(otter_src
 	src/ui/Window.cpp
 	src/ui/WorkspaceWidget.cpp
 	src/ui/preferences/AcceptLanguageDialog.cpp
-	src/ui/preferences/ContentBlockingDialog.cpp
-	src/ui/preferences/ContentBlockingIntervalDelegate.cpp
-	src/ui/preferences/ContentBlockingProfileDialog.cpp
+	src/ui/preferences/ContentFilteringDialog.cpp
+	src/ui/preferences/ContentFilteringIntervalDelegate.cpp
+	src/ui/preferences/ContentFilteringProfileDialog.cpp
 	src/ui/preferences/CookiesExceptionsDialog.cpp
 	src/ui/preferences/JavaScriptPreferencesDialog.cpp
 	src/ui/preferences/KeyboardProfileDialog.cpp
@@ -219,6 +219,8 @@ set(otter_src
 	src/ui/preferences/PreferencesPrivacyPageWidget.cpp
 	src/ui/preferences/PreferencesSearchPageWidget.cpp
 	src/modules/backends/passwords/file/FilePasswordsStorageBackend.cpp
+	src/modules/contentFiltering/AdblockContentFiltering.cpp
+	src/modules/contentFiltering/ContentFiltering.cpp
 	src/modules/importers/html/HtmlBookmarksImporter.cpp
 	src/modules/importers/opera/OperaBookmarksImporter.cpp
 	src/modules/importers/opera/OperaNotesImporter.cpp
@@ -228,7 +230,7 @@ set(otter_src
 	src/modules/widgets/action/NavigationActionWidget.cpp
 	src/modules/widgets/address/AddressWidget.cpp
 	src/modules/widgets/bookmark/BookmarkWidget.cpp
-	src/modules/widgets/contentBlockingInformation/ContentBlockingInformationWidget.cpp
+	src/modules/widgets/contentFilteringInformation/ContentFilteringInformationWidget.cpp
 	src/modules/widgets/menuButton/MenuButtonWidget.cpp
 	src/modules/widgets/panelChooser/PanelChooserWidget.cpp
 	src/modules/widgets/progressInformation/ProgressInformationWidget.cpp
@@ -292,8 +294,8 @@ qt5_wrap_ui(otter_ui
 	src/ui/WebsiteInformationDialog.ui
 	src/ui/WebsitePreferencesDialog.ui
 	src/ui/preferences/AcceptLanguageDialog.ui
-	src/ui/preferences/ContentBlockingDialog.ui
-	src/ui/preferences/ContentBlockingProfileDialog.ui
+	src/ui/preferences/ContentFilteringDialog.ui
+	src/ui/preferences/ContentFilteringProfileDialog.ui
 	src/ui/preferences/CookiesExceptionsDialog.ui
 	src/ui/preferences/JavaScriptPreferencesDialog.ui
 	src/ui/preferences/KeyboardProfileDialog.ui

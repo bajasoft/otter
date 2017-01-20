@@ -2,7 +2,7 @@
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2013 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 * Copyright (C) 2014, 2016 Piotr Wójcik <chocimier@tlen.pl>
-* Copyright (C) 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2016 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -128,10 +128,10 @@ public:
 		Content_UserStyleSheetOption,
 		Content_VisitedLinkColorOption,
 		Content_ZoomTextOnlyOption,
-		ContentBlocking_CosmeticFiltersModeOption,
-		ContentBlocking_EnableContentBlockingOption,
-		ContentBlocking_EnableWildcardsOption,
-		ContentBlocking_ProfilesOption,
+		ContentFiltering_CosmeticFiltersModeOption,
+		ContentFiltering_EnableContentFilteringOption,
+		ContentFiltering_EnableWildcardsOption,
+		ContentFiltering_ProfilesOption,
 		History_BrowsingLimitAmountGlobalOption,
 		History_BrowsingLimitAmountWindowOption,
 		History_BrowsingLimitPeriodOption,

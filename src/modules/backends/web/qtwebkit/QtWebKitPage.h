@@ -42,7 +42,7 @@ public:
 	explicit QtWebKitFrame(QWebFrame *frame, QtWebKitWebWidget *parent);
 
 protected:
-	void applyContentBlockingRules(const QStringList &rules, bool remove);
+	void applyContentFilteringRules(const QStringList &rules, bool remove);
 
 protected slots:
 	void handleLoadFinished();

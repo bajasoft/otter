@@ -2,7 +2,7 @@
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2013 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 * Copyright (C) 2014 Piotr Wójcik <chocimier@tlen.pl>
-* Copyright (C) 2015 - 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2015 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -104,9 +104,9 @@ void QtWebKitNetworkManager::timerEvent(QTimerEvent *event)
 	updateLoadingSpeed();
 }
 
-void QtWebKitNetworkManager::addContentBlockingException(const QUrl &url, NetworkManager::ResourceType resourceType)
+void QtWebKitNetworkManager::addContentFilteringException(const QUrl &url, NetworkManager::ResourceType resourceType)
 {
-	m_contentBlockingExceptions.insert(url);
+	m_contentFilteringExceptions.insert(url);
 
 	if (resourceType == NetworkManager::ImageType && m_widget->getOption(SettingsManager::Browser_EnableImagesOption, m_widget->getUrl()).toString() == QLatin1String("onlyCached"))
 	{
@@ -123,8 +123,8 @@ void QtWebKitNetworkManager::resetStatistics()
 	m_sslInformation = WebWidget::SslInformation();
 	m_loadingSpeedTimer = 0;
 	m_blockedElements.clear();
-	m_contentBlockingProfiles.clear();
-	m_contentBlockingExceptions.clear();
+	m_contentFilteringProfiles.clear();
+	m_contentFilteringExceptions.clear();
 	m_blockedRequests.clear();
 	m_replies.clear();
 	m_pageInformation.clear();
@@ -426,13 +426,13 @@ void QtWebKitNetworkManager::updateOptions(const QUrl &url)
 		m_backend = AddonsManager::getWebBackend(QLatin1String("qtwebkit"));
 	}
 
-	if (m_widget->getOption(SettingsManager::ContentBlocking_EnableContentBlockingOption, url).toBool())
+	if (m_widget->getOption(SettingsManager::ContentFiltering_EnableContentFilteringOption, url).toBool())
 	{
-		m_contentBlockingProfiles = ContentBlockingManager::getProfileList(m_widget->getOption(SettingsManager::ContentBlocking_ProfilesOption, url).toStringList());
+		m_contentFilteringProfiles = ContentFilteringManager::getProfileList(m_widget->getOption(SettingsManager::ContentFiltering_ProfilesOption, url).toStringList());
 	}
 	else
 	{
-		m_contentBlockingProfiles.clear();
+		m_contentFilteringProfiles.clear();
 	}
 
 	QString acceptLanguage(m_widget->getOption(SettingsManager::Network_AcceptLanguageOption, url).toString());
@@ -582,7 +582,7 @@ QNetworkReply* QtWebKitNetworkManager::createRequest(QNetworkAccessManager::Oper
 		return QNetworkAccessManager::createRequest(QNetworkAccessManager::GetOperation, QNetworkRequest(url));
 	}
 
-	if (m_contentBlockingExceptions.isEmpty() || !m_contentBlockingExceptions.contains(request.url()))
+	if (m_contentFilteringExceptions.isEmpty() || !m_contentFilteringExceptions.contains(request.url()))
 	{
 		if (!m_areImagesEnabled && (request.rawHeader(QByteArray("Accept")).contains(QByteArray("image/")) || request.url().path().endsWith(QLatin1String(".png")) || request.url().path().endsWith(QLatin1String(".jpg")) || request.url().path().endsWith(QLatin1String(".gif"))))
 		{
@@ -591,7 +591,7 @@ QNetworkReply* QtWebKitNetworkManager::createRequest(QNetworkAccessManager::Oper
 
 		if (!m_widget->isNavigating())
 		{
-			if (!m_contentBlockingProfiles.isEmpty())
+			if (!m_contentFilteringProfiles.isEmpty())
 			{
 				const QByteArray acceptHeader(request.rawHeader(QByteArray("Accept")));
 				const QString path(request.url().path());
@@ -633,7 +633,7 @@ QNetworkReply* QtWebKitNetworkManager::createRequest(QNetworkAccessManager::Oper
 					resourceType = NetworkManager::WebSocketType;
 				}
 
-				const ContentBlockingManager::CheckResult result(ContentBlockingManager::checkUrl(m_contentBlockingProfiles, m_widget->getUrl(), request.url(), resourceType));
+				const ContentFilteringManager::CheckResult result(ContentFilteringManager::checkUrl(m_contentFilteringProfiles, m_widget->getUrl(), request.url(), resourceType));
 
 				if (result.isBlocked)
 				{
@@ -647,8 +647,8 @@ QNetworkReply* QtWebKitNetworkManager::createRequest(QNetworkAccessManager::Oper
 					NetworkManager::ResourceInformation resource;
 					resource.url = request.url();
 					resource.resourceType = resourceType;
-					resource.metaData[NetworkManager::ContentBlockingProfileMetaData] = result.profile;
-					resource.metaData[NetworkManager::ContentBlockingRuleMetaData] = result.rule;
+					resource.metaData[NetworkManager::ContentFilteringProfileMetaData] = result.profile;
+					resource.metaData[NetworkManager::ContentFilteringRuleMetaData] = result.rule;
 
 					m_blockedRequests.append(resource);
 

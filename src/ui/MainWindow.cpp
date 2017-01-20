@@ -2,7 +2,7 @@
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2013 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 * Copyright (C) 2014 - 2015 Piotr Wójcik <chocimier@tlen.pl>
-* Copyright (C) 2015 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2015 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@
 #include "ToolBarWidget.h"
 #include "UpdateCheckerDialog.h"
 #include "Window.h"
-#include "preferences/ContentBlockingDialog.h"
+#include "preferences/ContentFilteringDialog.h"
 #include "../core/ActionsManager.h"
 #include "../core/AddonsManager.h"
 #include "../core/BookmarksManager.h"
@@ -621,9 +621,9 @@ void MainWindow::triggerAction(int identifier, const QVariantMap &parameters)
 			ToolBarsManager::resetToolBars();
 
 			break;
-		case ActionsManager::ContentBlockingAction:
+		case ActionsManager::ContentFilteringAction:
 			{
-				ContentBlockingDialog dialog(this);
+				ContentFilteringDialog dialog(this);
 				dialog.exec();
 			}
 

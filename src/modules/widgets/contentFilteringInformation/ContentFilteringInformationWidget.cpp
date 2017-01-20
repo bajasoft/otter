@@ -1,7 +1,7 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
-* Copyright (C) 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2016 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 *
 **************************************************************************/
 
-#include "ContentBlockingInformationWidget.h"
-#include "../../../core/ContentBlockingManager.h"
-#include "../../../core/ContentBlockingProfile.h"
+#include "ContentFilteringInformationWidget.h"
+#include "../../../core/ContentFilteringManager.h"
+#include "../../../core/ContentFilteringProfile.h"
 #include "../../../core/ThemesManager.h"
 #include "../../../core/Utils.h"
 #include "../../../ui/ContentsWidget.h"
@@ -34,12 +34,12 @@
 namespace Otter
 {
 
-ContentBlockingInformationWidget::ContentBlockingInformationWidget(Window *window, const ActionsManager::ActionEntryDefinition &definition, QWidget *parent) : ToolButtonWidget(definition, parent),
+ContentFilteringInformationWidget::ContentFilteringInformationWidget(Window *window, const ActionsManager::ActionEntryDefinition &definition, QWidget *parent) : ToolButtonWidget(definition, parent),
 	m_window(window),
 	m_elementsMenu(nullptr),
 	m_profilesMenu(nullptr),
 	m_amount(0),
-	m_isContentBlockingEnabled(false)
+	m_isContentFilteringEnabled(false)
 {
 	QMenu *menu(new QMenu(this));
 
@@ -63,24 +63,24 @@ ContentBlockingInformationWidget::ContentBlockingInformationWidget(Window *windo
 	connect(m_elementsMenu, SIGNAL(triggered(QAction*)), this, SLOT(openElement(QAction*)));
 	connect(m_profilesMenu, SIGNAL(aboutToShow()), this, SLOT(populateProfilesMenu()));
 	connect(m_profilesMenu, SIGNAL(triggered(QAction*)), this, SLOT(toggleOption(QAction*)));
-	connect(defaultAction(), SIGNAL(triggered()), this, SLOT(toggleContentBlocking()));
+	connect(defaultAction(), SIGNAL(triggered()), this, SLOT(toggleContentFiltering()));
 }
 
-void ContentBlockingInformationWidget::resizeEvent(QResizeEvent *event)
+void ContentFilteringInformationWidget::resizeEvent(QResizeEvent *event)
 {
 	ToolButtonWidget::resizeEvent(event);
 
 	updateState();
 }
 
-void ContentBlockingInformationWidget::clear()
+void ContentFilteringInformationWidget::clear()
 {
 	m_amount = 0;
 
 	updateState();
 }
 
-void ContentBlockingInformationWidget::openElement(QAction *action)
+void ContentFilteringInformationWidget::openElement(QAction *action)
 {
 	MainWindow *mainWindow(MainWindow::findMainWindow(parent()));
 
@@ -90,24 +90,24 @@ void ContentBlockingInformationWidget::openElement(QAction *action)
 	}
 }
 
-void ContentBlockingInformationWidget::toggleContentBlocking()
+void ContentFilteringInformationWidget::toggleContentFiltering()
 {
 	if (m_window)
 	{
-		m_isContentBlockingEnabled = !m_window->getContentsWidget()->getOption(SettingsManager::ContentBlocking_EnableContentBlockingOption).toBool();
+		m_isContentFilteringEnabled = !m_window->getContentsWidget()->getOption(SettingsManager::ContentFiltering_EnableContentFilteringOption).toBool();
 
-		m_window->getContentsWidget()->setOption(SettingsManager::ContentBlocking_EnableContentBlockingOption, m_isContentBlockingEnabled);
+		m_window->getContentsWidget()->setOption(SettingsManager::ContentFiltering_EnableContentFilteringOption, m_isContentFilteringEnabled);
 
 		updateState();
 	}
 }
 
-void ContentBlockingInformationWidget::toggleOption(QAction *action)
+void ContentFilteringInformationWidget::toggleOption(QAction *action)
 {
 	if (action && m_window && !action->data().isNull())
 	{
 		const QString profile(action->data().toString());
-		QStringList profiles(m_window->getContentsWidget()->getOption(SettingsManager::ContentBlocking_ProfilesOption).toStringList());
+		QStringList profiles(m_window->getContentsWidget()->getOption(SettingsManager::ContentFiltering_ProfilesOption).toStringList());
 
 		if (!action->isChecked())
 		{
@@ -118,11 +118,11 @@ void ContentBlockingInformationWidget::toggleOption(QAction *action)
 			profiles.append(profile);
 		}
 
-		m_window->getContentsWidget()->setOption(SettingsManager::ContentBlocking_ProfilesOption, profiles);
+		m_window->getContentsWidget()->setOption(SettingsManager::ContentFiltering_ProfilesOption, profiles);
 	}
 }
 
-void ContentBlockingInformationWidget::populateElementsMenu()
+void ContentFilteringInformationWidget::populateElementsMenu()
 {
 	m_elementsMenu->clear();
 
@@ -186,7 +186,7 @@ void ContentBlockingInformationWidget::populateElementsMenu()
 	}
 }
 
-void ContentBlockingInformationWidget::populateProfilesMenu()
+void ContentFilteringInformationWidget::populateProfilesMenu()
 {
 	m_profilesMenu->clear();
 
@@ -195,9 +195,9 @@ void ContentBlockingInformationWidget::populateProfilesMenu()
 		return;
 	}
 
-	QAction *enableContentBlockingAction(m_profilesMenu->addAction(tr("Enable Content Blocking"), this, SLOT(toggleContentBlocking())));
-	enableContentBlockingAction->setCheckable(true);
-	enableContentBlockingAction->setChecked(m_window->getContentsWidget()->getOption(SettingsManager::ContentBlocking_EnableContentBlockingOption).toBool());
+	QAction *enableContentFilteringAction(m_profilesMenu->addAction(tr("Enable Content Blocking"), this, SLOT(toggleContentFiltering())));
+	enableContentFilteringAction->setCheckable(true);
+	enableContentFilteringAction->setChecked(m_window->getContentsWidget()->getOption(SettingsManager::ContentFiltering_EnableContentFilteringOption).toBool());
 
 	m_profilesMenu->addSeparator();
 
@@ -206,7 +206,7 @@ void ContentBlockingInformationWidget::populateProfilesMenu()
 
 	for (int i = 0; i < requests.count(); ++i)
 	{
-		const QString profile(requests.at(i).metaData.value(NetworkManager::ContentBlockingProfileMetaData).toString());
+		const QString profile(requests.at(i).metaData.value(NetworkManager::ContentFilteringProfileMetaData).toString());
 
 		if (amounts.contains(profile))
 		{
@@ -218,8 +218,8 @@ void ContentBlockingInformationWidget::populateProfilesMenu()
 		}
 	}
 
-	const QVector<ContentBlockingProfile*> profiles(ContentBlockingManager::getProfiles());
-	const QStringList enabledProfiles(m_window->getContentsWidget()->getOption(SettingsManager::ContentBlocking_ProfilesOption).toStringList());
+	const QVector<ContentFilteringProfile*> profiles(ContentFilteringManager::getProfiles());
+	const QStringList enabledProfiles(m_window->getContentsWidget()->getOption(SettingsManager::ContentFiltering_ProfilesOption).toStringList());
 
 	for (int i = 0; i < profiles.count(); ++i)
 	{
@@ -235,7 +235,7 @@ void ContentBlockingInformationWidget::populateProfilesMenu()
 	}
 }
 
-void ContentBlockingInformationWidget::handleRequest(const NetworkManager::ResourceInformation &request)
+void ContentFilteringInformationWidget::handleRequest(const NetworkManager::ResourceInformation &request)
 {
 	Q_UNUSED(request)
 
@@ -244,7 +244,7 @@ void ContentBlockingInformationWidget::handleRequest(const NetworkManager::Resou
 	updateState();
 }
 
-void ContentBlockingInformationWidget::updateState()
+void ContentFilteringInformationWidget::updateState()
 {
 	m_icon = (isCustomized() ? getOptions().value(QLatin1String("icon")).value<QIcon>() : QIcon());
 
@@ -279,9 +279,9 @@ void ContentBlockingInformationWidget::updateState()
 	font.setPixelSize(fontSize * 0.8);
 
 	QRectF rectangle((iconSize - labelWidth), (iconSize - fontSize), labelWidth, fontSize);
-	QPixmap pixmap(m_icon.pixmap(iconSize, iconSize, (m_isContentBlockingEnabled ? QIcon::Normal : QIcon::Disabled)));
+	QPixmap pixmap(m_icon.pixmap(iconSize, iconSize, (m_isContentFilteringEnabled ? QIcon::Normal : QIcon::Disabled)));
 	QPainter iconPainter(&pixmap);
-	iconPainter.fillRect(rectangle, (m_isContentBlockingEnabled ? Qt::darkRed : Qt::darkGray));
+	iconPainter.fillRect(rectangle, (m_isContentFilteringEnabled ? Qt::darkRed : Qt::darkGray));
 	iconPainter.setFont(font);
 	iconPainter.setPen(QColor(255, 255, 255, 230));
 	iconPainter.drawText(rectangle, Qt::AlignCenter, label);
@@ -295,7 +295,7 @@ void ContentBlockingInformationWidget::updateState()
 	m_elementsMenu->setEnabled(m_amount > 0);
 }
 
-void ContentBlockingInformationWidget::setWindow(Window *window)
+void ContentFilteringInformationWidget::setWindow(Window *window)
 {
 	if (m_window)
 	{
@@ -309,21 +309,21 @@ void ContentBlockingInformationWidget::setWindow(Window *window)
 	if (window)
 	{
 		m_amount = window->getContentsWidget()->getBlockedRequests().count();
-		m_isContentBlockingEnabled = (m_window->getContentsWidget()->getOption(SettingsManager::ContentBlocking_EnableContentBlockingOption).toBool());
+		m_isContentFilteringEnabled = (m_window->getContentsWidget()->getOption(SettingsManager::ContentFiltering_EnableContentFilteringOption).toBool());
 
 		connect(m_window->getContentsWidget(), SIGNAL(aboutToNavigate()), this, SLOT(clear()));
 		connect(m_window->getContentsWidget(), SIGNAL(requestBlocked(NetworkManager::ResourceInformation)), this, SLOT(handleRequest(NetworkManager::ResourceInformation)));
 	}
 	else
 	{
-		m_isContentBlockingEnabled = false;
+		m_isContentFilteringEnabled = false;
 	}
 
 	updateState();
 	setEnabled(m_window);
 }
 
-QString ContentBlockingInformationWidget::getText() const
+QString ContentFilteringInformationWidget::getText() const
 {
 	if (isCustomized())
 	{
@@ -338,7 +338,7 @@ QString ContentBlockingInformationWidget::getText() const
 	return tr("Blocked Elements: %1").arg(m_amount);
 }
 
-QIcon ContentBlockingInformationWidget::getIcon() const
+QIcon ContentFilteringInformationWidget::getIcon() const
 {
 	return m_icon;
 }

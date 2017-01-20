@@ -9,21 +9,21 @@
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/>.
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 **************************************************************************/
 
-#include "ContentBlockingProfileDialog.h"
-#include "../../core/ContentBlockingManager.h"
-#include "../../core/ContentBlockingProfile.h"
+#include "ContentFilteringProfileDialog.h"
+#include "../../core/ContentFilteringManager.h"
+#include "../../core/ContentFilteringProfile.h"
 #include "../../core/SessionsManager.h"
 #include "../../core/Utils.h"
 
-#include "ui_ContentBlockingProfileDialog.h"
+#include "ui_ContentFilteringProfileDialog.h"
 
 #include <QtCore/QDir>
 #include <QtWidgets/QMessageBox>
@@ -31,17 +31,17 @@
 namespace Otter
 {
 
-ContentBlockingProfileDialog::ContentBlockingProfileDialog(QWidget *parent, ContentBlockingProfile *profile) : Dialog(parent),
+ContentFilteringProfileDialog::ContentFilteringProfileDialog(QWidget *parent, ContentFilteringProfile *profile) : Dialog(parent),
 	m_profile(profile),
-	m_ui(new Ui::ContentBlockingProfileDialog)
+	m_ui(new Ui::ContentFilteringProfileDialog)
 {
 	m_ui->setupUi(this);
-	m_ui->categoryComboBox->addItem(tr("Advertisements"), ContentBlockingProfile::AdvertisementsCategory);
-	m_ui->categoryComboBox->addItem(tr("Annoyance"), ContentBlockingProfile::AnnoyanceCategory);
-	m_ui->categoryComboBox->addItem(tr("Privacy"), ContentBlockingProfile::PrivacyCategory);
-	m_ui->categoryComboBox->addItem(tr("Social"), ContentBlockingProfile::SocialCategory);
-	m_ui->categoryComboBox->addItem(tr("Regional"), ContentBlockingProfile::RegionalCategory);
-	m_ui->categoryComboBox->addItem(tr("Other"), ContentBlockingProfile::OtherCategory);
+	m_ui->categoryComboBox->addItem(tr("Advertisements"), ContentFilteringProfile::AdvertisementsCategory);
+	m_ui->categoryComboBox->addItem(tr("Annoyance"), ContentFilteringProfile::AnnoyanceCategory);
+	m_ui->categoryComboBox->addItem(tr("Privacy"), ContentFilteringProfile::PrivacyCategory);
+	m_ui->categoryComboBox->addItem(tr("Social"), ContentFilteringProfile::SocialCategory);
+	m_ui->categoryComboBox->addItem(tr("Regional"), ContentFilteringProfile::RegionalCategory);
+	m_ui->categoryComboBox->addItem(tr("Other"), ContentFilteringProfile::OtherCategory);
 
 	if (profile)
 	{
@@ -56,17 +56,17 @@ ContentBlockingProfileDialog::ContentBlockingProfileDialog(QWidget *parent, Cont
 	connect(m_ui->confirmButtonBox, SIGNAL(rejected()), this, SLOT(close()));
 }
 
-ContentBlockingProfileDialog::~ContentBlockingProfileDialog()
+ContentFilteringProfileDialog::~ContentFilteringProfileDialog()
 {
 	delete m_ui;
 }
 
-ContentBlockingProfile* ContentBlockingProfileDialog::getProfile()
+ContentFilteringProfile* ContentFilteringProfileDialog::getProfile()
 {
 	return m_profile;
 }
 
-void ContentBlockingProfileDialog::changeEvent(QEvent *event)
+void ContentFilteringProfileDialog::changeEvent(QEvent *event)
 {
 	QDialog::changeEvent(event);
 
@@ -76,9 +76,9 @@ void ContentBlockingProfileDialog::changeEvent(QEvent *event)
 	}
 }
 
-void ContentBlockingProfileDialog::save()
+void ContentFilteringProfileDialog::save()
 {
-	const ContentBlockingProfile::ProfileCategory category(static_cast<ContentBlockingProfile::ProfileCategory>(m_ui->categoryComboBox->itemData(m_ui->categoryComboBox->currentIndex()).toInt()));
+	const ContentFilteringProfile::ProfileCategory category(static_cast<ContentFilteringProfile::ProfileCategory>(m_ui->categoryComboBox->itemData(m_ui->categoryComboBox->currentIndex()).toInt()));
 
 	const QUrl url(m_ui->updateUrlEdit->text());
 
@@ -98,10 +98,10 @@ void ContentBlockingProfileDialog::save()
 	}
 	else
 	{
-		QDir().mkpath(SessionsManager::getWritableDataPath(QLatin1String("contentBlocking")));
+		QDir().mkpath(SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering")));
 
 		const QString fileName(QFileInfo(url.fileName()).completeBaseName());
-		QFile file(SessionsManager::getWritableDataPath(QLatin1String("contentBlocking/%1.txt")).arg(fileName));
+		QFile file(SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering/%1.txt")).arg(fileName));
 
 		if (file.exists())
 		{
@@ -120,9 +120,9 @@ void ContentBlockingProfileDialog::save()
 		file.write(QStringLiteral("[AdBlock Plus 2.0]\n").toUtf8());
 		file.close();
 
-		ContentBlockingProfile *profile(new ContentBlockingProfile(fileName, m_ui->titleEdit->text(), url, QDateTime(), QList<QString>(), m_ui->updateIntervalSpinBox->value(), category, (ContentBlockingProfile::HasCustomTitleFlag | ContentBlockingProfile::HasCustomUpdateUrlFlag)));
+		ContentFilteringProfile *profile(new ContentFilteringProfile(fileName, m_ui->titleEdit->text(), QLatin1String("adBlock"), url, QDateTime(), QList<QString>(), m_ui->updateIntervalSpinBox->value(), category, (ContentFilteringProfile::HasCustomTitleFlag | ContentFilteringProfile::HasCustomUpdateUrlFlag | ContentFilteringProfile::HasTypeFlag)));
 
-		ContentBlockingManager::addProfile(profile);
+		ContentFilteringManager::addProfile(profile);
 
 		m_profile = profile;
 	}

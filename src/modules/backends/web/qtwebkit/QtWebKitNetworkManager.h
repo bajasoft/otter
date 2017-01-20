@@ -1,7 +1,7 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2013 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
-* Copyright (C) 2015 - 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2015 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #define OTTER_QTWEBKITNETWORKMANAGER_H
 
 #include "QtWebKitWebWidget.h"
-#include "../../../../core/ContentBlockingManager.h"
+#include "../../../../core/ContentFilteringManager.h"
 #include "../../../../core/NetworkManager.h"
 #include "../../../../core/NetworkManagerFactory.h"
 #include "../../../../core/WindowsManager.h"
@@ -53,7 +53,7 @@ public:
 
 protected:
 	void timerEvent(QTimerEvent *event);
-	void addContentBlockingException(const QUrl &url, NetworkManager::ResourceType resourceType);
+	void addContentFilteringException(const QUrl &url, NetworkManager::ResourceType resourceType);
 	void resetStatistics();
 	void registerTransfer(QNetworkReply *reply);
 	void updateLoadingSpeed();
@@ -94,8 +94,8 @@ private:
 	QStringList m_blockedElements;
 	QList<QNetworkReply*> m_transfers;
 	QList<NetworkManager::ResourceInformation> m_blockedRequests;
-	QVector<int> m_contentBlockingProfiles;
-	QSet<QUrl> m_contentBlockingExceptions;
+	QVector<int> m_contentFilteringProfiles;
+	QSet<QUrl> m_contentFilteringExceptions;
 	QHash<QNetworkReply*, QPair<qint64, bool> > m_replies;
 	QMap<WebWidget::PageInformation, QVariant> m_pageInformation;
 	WindowsManager::ContentStates m_contentState;

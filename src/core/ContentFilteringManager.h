@@ -1,6 +1,6 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
-* Copyright (C) 2014 - 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2014 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 * Copyright (C) 2015 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 *
 * This program is free software: you can redistribute it and/or modify
@@ -10,16 +10,16 @@
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 *
 * You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/>.
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 **************************************************************************/
 
-#ifndef OTTER_CONTENTBLOCKINGMANAGER_H
-#define OTTER_CONTENTBLOCKINGMANAGER_H
+#ifndef OTTER_ContentFilteringMANAGER_H
+#define OTTER_ContentFilteringMANAGER_H
 
 #include "NetworkManager.h"
 
@@ -29,9 +29,9 @@
 namespace Otter
 {
 
-class ContentBlockingProfile;
+class ContentFilteringProfile;
 
-class ContentBlockingManager : public QObject
+class ContentFilteringManager : public QObject
 {
 	Q_OBJECT
 
@@ -53,16 +53,16 @@ public:
 	};
 
 	static void createInstance(QObject *parent = nullptr);
-	static void addProfile(ContentBlockingProfile *profile);
+	static void addProfile(ContentFilteringProfile *profile);
 	static QStandardItemModel* createModel(QObject *parent, const QStringList &profiles);
-	static ContentBlockingManager* getInstance();
-	static ContentBlockingProfile* getProfile(const QString &profile);
+	static ContentFilteringManager* getInstance();
+	static ContentFilteringProfile* getProfile(const QString &profile);
 	static CheckResult checkUrl(const QVector<int> &profiles, const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
 	static QStringList createSubdomainList(const QString &domain);
 	static QStringList getStyleSheet(const QVector<int> &profiles);
 	static QStringList getStyleSheetBlackList(const QString &domain, const QVector<int> &profiles);
 	static QStringList getStyleSheetWhiteList(const QString &domain, const QVector<int> &profiles);
-	static QVector<ContentBlockingProfile*> getProfiles();
+	static QVector<ContentFilteringProfile*> getProfiles();
 	static QVector<int> getProfileList(const QStringList &names);
 	static CosmeticFiltersMode getCosmeticFiltersMode();
 	static bool areWildcardsEnabled();
@@ -72,7 +72,7 @@ public slots:
 	void scheduleSave();
 
 protected:
-	explicit ContentBlockingManager(QObject *parent = nullptr);
+	explicit ContentFilteringManager(QObject *parent = nullptr);
 
 	void timerEvent(QTimerEvent *event);
 
@@ -82,8 +82,8 @@ protected slots:
 private:
 	int m_saveTimer;
 
-	static ContentBlockingManager *m_instance;
-	static QVector<ContentBlockingProfile*> m_profiles;
+	static ContentFilteringManager *m_instance;
+	static QVector<ContentFilteringProfile*> m_profiles;
 	static CosmeticFiltersMode m_cosmeticFiltersMode;
 	static bool m_areWildcardsEnabled;
 

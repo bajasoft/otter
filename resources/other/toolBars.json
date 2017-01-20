@@ -59,7 +59,7 @@
 			"ZoomOutAction",
 			"ZoomWidget",
 			"ZoomInAction",
-			"ContentBlockingInformationWidget"
+			"ContentFilteringInformationWidget"
 		]
 	}
 ]

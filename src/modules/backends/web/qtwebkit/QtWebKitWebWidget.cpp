@@ -30,7 +30,7 @@
 #include "../../../../core/BookmarksManager.h"
 #include "../../../../core/Console.h"
 #include "../../../../core/CookieJar.h"
-#include "../../../../core/ContentBlockingManager.h"
+#include "../../../../core/ContentFilteringManager.h"
 #include "../../../../core/GesturesManager.h"
 #include "../../../../core/HistoryManager.h"
 #include "../../../../core/NetworkCache.h"
@@ -1229,7 +1229,7 @@ void QtWebKitWebWidget::triggerAction(int identifier, const QVariantMap &paramet
 
 				if (hitResult.frame())
 				{
-					m_networkManager->addContentBlockingException(url, NetworkManager::SubFrameType);
+					m_networkManager->addContentFilteringException(url, NetworkManager::SubFrameType);
 
 					hitResult.frame()->setUrl(QUrl());
 					hitResult.frame()->setUrl(url);
@@ -1308,7 +1308,7 @@ void QtWebKitWebWidget::triggerAction(int identifier, const QVariantMap &paramet
 		case ActionsManager::ReloadImageAction:
 			if (!getCurrentHitTestResult().imageUrl.isEmpty())
 			{
-				m_networkManager->addContentBlockingException(getCurrentHitTestResult().imageUrl, NetworkManager::ImageType);
+				m_networkManager->addContentFilteringException(getCurrentHitTestResult().imageUrl, NetworkManager::ImageType);
 
 				m_page->settings()->setAttribute(QWebSettings::AutoLoadImages, true);
 

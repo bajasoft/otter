@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Otter::ContentBlockingDialog</class>
- <widget class="QDialog" name="Otter::ContentBlockingDialog">
+ <class>Otter::ContentFilteringDialog</class>
+ <widget class="QDialog" name="Otter::contentFilteringDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Content Blocking</string>
   </property>
-  <layout class="QVBoxLayout" name="contentBlockingVerticalLayout">
+  <layout class="QVBoxLayout" name="contentFilteringVerticalLayout">
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">

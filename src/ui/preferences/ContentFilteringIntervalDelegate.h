@@ -1,7 +1,7 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2015 - 2016 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
-* Copyright (C) 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2016 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,18 +18,18 @@
 *
 **************************************************************************/
 
-#ifndef OTTER_CONTENTBLOCKINGINTERVALDELEGATE_H
-#define OTTER_CONTENTBLOCKINGINTERVALDELEGATE_H
+#ifndef OTTER_ContentFilteringINTERVALDELEGATE_H
+#define OTTER_ContentFilteringINTERVALDELEGATE_H
 
 #include "../ItemDelegate.h"
 
 namespace Otter
 {
 
-class ContentBlockingIntervalDelegate : public ItemDelegate
+class ContentFilteringIntervalDelegate : public ItemDelegate
 {
 public:
-	explicit ContentBlockingIntervalDelegate(QObject *parent = nullptr);
+	explicit ContentFilteringIntervalDelegate(QObject *parent = nullptr);
 
 	void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const;
 	void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;

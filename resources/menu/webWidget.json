@@ -46,7 +46,7 @@
 					]
 				},
 				"separator",
-				"ContentBlocking",
+				"ContentFiltering",
 				"WebsitePreferences",
 				"separator",
 				"FullScreen"

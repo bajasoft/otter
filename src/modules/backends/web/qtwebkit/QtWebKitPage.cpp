@@ -22,7 +22,7 @@
 #include "QtWebKitNetworkManager.h"
 #include "QtWebKitWebWidget.h"
 #include "../../../../core/Console.h"
-#include "../../../../core/ContentBlockingManager.h"
+#include "../../../../core/ContentFilteringManager.h"
 #include "../../../../core/NetworkManagerFactory.h"
 #include "../../../../core/SettingsManager.h"
 #include "../../../../core/ThemesManager.h"
@@ -51,7 +51,7 @@ QtWebKitFrame::QtWebKitFrame(QWebFrame *frame, QtWebKitWebWidget *parent) : QObj
 	connect(frame, SIGNAL(loadFinished(bool)), this, SLOT(handleLoadFinished()));
 }
 
-void QtWebKitFrame::applyContentBlockingRules(const QStringList &rules, bool remove)
+void QtWebKitFrame::applyContentFilteringRules(const QStringList &rules, bool remove)
 {
 	const QWebElement document(m_frame->documentElement());
 	const QString value(remove ? QLatin1String("none !important") : QString());
@@ -74,31 +74,31 @@ void QtWebKitFrame::applyContentBlockingRules(const QStringList &rules, bool rem
 
 void QtWebKitFrame::handleLoadFinished()
 {
-	if (!m_widget || !m_widget->getOption(SettingsManager::ContentBlocking_EnableContentBlockingOption, m_widget->getUrl()).toBool())
+	if (!m_widget || !m_widget->getOption(SettingsManager::ContentFiltering_EnableContentFilteringOption, m_widget->getUrl()).toBool())
 	{
 		return;
 	}
 
 	const QUrl url(m_widget->getUrl());
-	const QVector<int> profiles(ContentBlockingManager::getProfileList(m_widget->getOption(SettingsManager::ContentBlocking_ProfilesOption, url).toStringList()));
+	const QVector<int> profiles(ContentFilteringManager::getProfileList(m_widget->getOption(SettingsManager::ContentFiltering_ProfilesOption, url).toStringList()));
 
-	if (!profiles.isEmpty() && ContentBlockingManager::getCosmeticFiltersMode() != ContentBlockingManager::NoFiltersMode)
+	if (!profiles.isEmpty() && ContentFilteringManager::getCosmeticFiltersMode() != ContentFilteringManager::NoFiltersMode)
 	{
-		const ContentBlockingManager::CosmeticFiltersMode mode(ContentBlockingManager::checkUrl(profiles, url, url, NetworkManager::OtherType).comesticFiltersMode);
+		const ContentFilteringManager::CosmeticFiltersMode mode(ContentFilteringManager::checkUrl(profiles, url, url, NetworkManager::OtherType).comesticFiltersMode);
 
-		if (mode != ContentBlockingManager::NoFiltersMode)
+		if (mode != ContentFilteringManager::NoFiltersMode)
 		{
-			if (mode != ContentBlockingManager::DomainOnlyFiltersMode)
+			if (mode != ContentFilteringManager::DomainOnlyFiltersMode)
 			{
-				applyContentBlockingRules(ContentBlockingManager::getStyleSheet(profiles), true);
+				applyContentFilteringRules(ContentFilteringManager::getStyleSheet(profiles), true);
 			}
 
-			const QStringList domainList(ContentBlockingManager::createSubdomainList(url.host()));
+			const QStringList domainList(ContentFilteringManager::createSubdomainList(url.host()));
 
 			for (int i = 0; i < domainList.count(); ++i)
 			{
-				applyContentBlockingRules(ContentBlockingManager::getStyleSheetBlackList(domainList.at(i), profiles), true);
-				applyContentBlockingRules(ContentBlockingManager::getStyleSheetWhiteList(domainList.at(i), profiles), false);
+				applyContentFilteringRules(ContentFilteringManager::getStyleSheetBlackList(domainList.at(i), profiles), true);
+				applyContentFilteringRules(ContentFilteringManager::getStyleSheetWhiteList(domainList.at(i), profiles), false);
 			}
 		}
 	}
@@ -237,7 +237,7 @@ void QtWebKitPage::handleConsoleMessage(MessageSource category, MessageLevel lev
 
 			break;
 		case ContentBlockerMessageSource:
-			mappedCategory = Console::ContentBlockingCategory;
+			mappedCategory = Console::ContentFilteringCategory;
 
 			break;
 		case SecurityMessageSource:
