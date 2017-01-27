@@ -24,7 +24,7 @@
 #include "NetworkManagerFactory.h"
 #include "SessionsManager.h"
 #include "../modules/contentFiltering/AdblockContentFiltering.h"
-#include "../modules/contentFiltering/ContentFiltering.h"
+//#include "../modules/contentFiltering/ContentFiltering.h"
 
 #include <QtCore/QDir>
 #include <QtNetwork/QNetworkReply>
@@ -33,7 +33,7 @@
 namespace Otter
 {
 
-ContentFilteringProfile::ContentFilteringProfile(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent) : QObject(parent),
+ContentFilteringProfile::ContentFilteringProfile(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent) : Addon(parent),
 	m_networkReply(nullptr),
 	m_name(name),
 	m_title(title),
@@ -55,14 +55,14 @@ ContentFilteringProfile::ContentFilteringProfile(const QString &name, const QStr
 		}
 	}
 
-	if (type == QLatin1String("adBlock"))
-	{
-		m_resolver = new AdblockContentFiltering(this);
-	}
-	else
-	{
-		m_resolver = new ContentFiltering(this);
-	}
+	//if (type == QLatin1String("adBlock"))
+	//{
+	//	m_resolver = new AdblockContentFiltering(this);
+	//}
+	//else
+	//{
+	//	m_resolver = new ContentFiltering(this);
+	//}
 
 	if (validate(getPath()) && m_updateInterval > 0 && (!m_lastUpdate.isValid() || m_lastUpdate.daysTo(QDateTime::currentDateTime()) > m_updateInterval))
 	{
@@ -169,44 +169,63 @@ QUrl ContentFilteringProfile::getUpdateUrl() const
 
 ContentFilteringManager::CheckResult ContentFilteringProfile::checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType)
 {
-	ContentFilteringManager::CheckResult result;
+	//ContentFilteringManager::CheckResult result;
 
+	//if (!m_wasLoaded && !loadRules())
+	//{
+	//	return result;
+	//}
+	return ContentFilteringManager::CheckResult();
+	//return m_resolver->checkUrl(baseUrl, requestUrl, resourceType);
+}
+
+bool ContentFilteringProfile::beforeCheckUrl()
+{
 	if (!m_wasLoaded && !loadRules())
 	{
-		return result;
+		return false;
 	}
-
-	return m_resolver->checkUrl(baseUrl, requestUrl, resourceType);
 }
 
 QStringList ContentFilteringProfile::getStyleSheet()
 {
-	if (!m_wasLoaded)
-	{
-		loadRules();
-	}
+	//if (!m_wasLoaded)
+	//{
+	//	loadRules();
+	//}
 
-	return m_resolver->getStyleSheet();
+	//return m_resolver->getStyleSheet();
+	return QStringList();
 }
 
 QStringList ContentFilteringProfile::getStyleSheetBlackList(const QString &domain)
 {
-	if (!m_wasLoaded)
-	{
-		loadRules();
-	}
+	//if (!m_wasLoaded)
+	//{
+	//	loadRules();
+	//}
 
-	return m_resolver->getStyleSheetBlackList(domain);
+	//return m_resolver->getStyleSheetBlackList(domain);
+	return QStringList();
 }
 
 QStringList ContentFilteringProfile::getStyleSheetWhiteList(const QString &domain)
+{
+	//if (!m_wasLoaded)
+	//{
+	//	loadRules();
+	//}
+
+	//return m_resolver->getStyleSheetWhiteList(domain);
+	return QStringList();
+}
+
+bool ContentFilteringProfile::checkLoadingState()
 {
 	if (!m_wasLoaded)
 	{
 		loadRules();
 	}
-
-	return m_resolver->getStyleSheetWhiteList(domain);
 }
 
 QList<QLocale::Language> ContentFilteringProfile::getLanguages() const
@@ -243,7 +262,7 @@ bool ContentFilteringProfile::clear()
 	return true;
 }
 
-bool ContentFilteringProfile::loadRules()
+bool ContentFilteringProfile::loadRulesCheck()
 {
 	if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
 	{
@@ -253,10 +272,23 @@ bool ContentFilteringProfile::loadRules()
 	}
 
 	m_wasLoaded = true;
+}
 
-	QFile file(getPath());
+bool ContentFilteringProfile::loadRules()
+{
+	//if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
+	//{
+	//	update();
 
-	return m_resolver->loadRules(file);
+	//	return false;
+	//}
+
+	//m_wasLoaded = true;
+
+	//QFile file(getPath());
+
+	//return m_resolver->loadRules(file);
+	return false;
 }
 
 bool ContentFilteringProfile::update()
@@ -292,44 +324,95 @@ bool ContentFilteringProfile::update()
 	return true;
 }
 
-bool ContentFilteringProfile::validate(const QString &path)
+bool ContentFilteringProfile::checkFile(QFile &file)
 {
-	QFile file(path);
+	//QFile file(path);
 
 	if (!file.exists())
 	{
-		return true;
+		return false;
 	}
 
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
 	{
-		Console::addMessage(QCoreApplication::translate("main", "Failed to open content blocking profile file: %1").arg(file.errorString()), Console::OtherCategory, Console::ErrorLevel, file.fileName());
+		Console::addMessage(QCoreApplication::translate("main", "Failed to open content filtering profile file: %1").arg(file.errorString()), Console::OtherCategory, Console::ErrorLevel, file.fileName());
 
 		return false;
 	}
 
-	if (!m_resolver->validate(file))
-	{
-		Console::addMessage(QCoreApplication::translate("main", "Invalid content blocking profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
+	//file.close();
 
-		file.close();
+	return true;
+}
 
-		return false;
-	}
-
+void ContentFilteringProfile::loadTitle(const QString &title)
+{
 	if (!m_flags.testFlag(HasCustomTitleFlag))
 	{
-		const QString title(m_resolver->getTitle());
+		//const QString title(m_resolver->getTitle());
 
 		if (!title.isEmpty())
 		{
-			m_title = m_resolver->getTitle();
+			m_title = title;
+		}
+	}
+}
+
+bool ContentFilteringProfile::validate(const QString &path)
+{
+	//QFile file(path);
+
+	//if (!file.exists())
+	//{
+	//	return true;
+	//}
+
+	//if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+	//{
+	//	Console::addMessage(QCoreApplication::translate("main", "Failed to open content blocking profile file: %1").arg(file.errorString()), Console::OtherCategory, Console::ErrorLevel, file.fileName());
+
+	//	return false;
+	//}
+
+	//checkFile(path);
+
+	//if (!m_resolver->validate(file))
+	//{
+	//	Console::addMessage(QCoreApplication::translate("main", "Invalid content blocking profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
+
+	//	file.close();
+
+	//	return false;
+	//}
+
+	//loadTitle("title");
+
+	//if (!m_flags.testFlag(HasCustomTitleFlag))
+	//{
+	//	const QString title(m_resolver->getTitle());
+
+	//	if (!title.isEmpty())
+	//	{
+	//		m_title = m_resolver->getTitle();
+	//	}
+	//}
+
+	//file.close();
+
+	return true;
+}
+
+bool ContentFilteringProfile::resolveDomainExceptions(const QString &url, const QStringList &ruleList)
+{
+	for (int i = 0; i < ruleList.count(); ++i)
+	{
+		if (url.contains(ruleList.at(i)))
+		{
+			return true;
 		}
 	}
 
-	file.close();
-
-	return true;
+	return false;
 }
 
 }

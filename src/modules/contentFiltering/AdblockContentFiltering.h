@@ -23,29 +23,29 @@
 #define OTTER_ADBLOCKCONTENTFILTERING_H
 
 #include "../../core/ContentFilteringManager.h"
-#include "ContentFiltering.h"
+#include "../../core/ContentFilteringProfile.h"
 
 #include <QtCore/QRegularExpression>
 
 namespace Otter
 {
 
-class AdblockContentFiltering : public ContentFiltering
+class AdblockContentFiltering : public ContentFilteringProfile
 {
 	Q_OBJECT
 
 public:
-	explicit AdblockContentFiltering(QObject *parent = nullptr);
+	explicit AdblockContentFiltering(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent);
 
-	void clear() override;
+	bool clear() override;
 	ContentFilteringManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType) override;
 	QString getTitle() const override;
 	QStringList getStyleSheet() override;
 	QStringList getStyleSheetBlackList(const QString &domain) override;
 	QStringList getStyleSheetWhiteList(const QString &domain) override;
-	bool loadRules(QFile &file) override;
+	bool loadRules() override;
 	bool parseUpdate(QNetworkReply *reply, QFile &file) override;
-	bool validate(QFile &file) override;
+	bool validate(const QString &path) override;
 
 protected:
 	enum RuleOption : quint32

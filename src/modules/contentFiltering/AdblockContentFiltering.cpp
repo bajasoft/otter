@@ -35,13 +35,18 @@ QList<QChar> AdblockContentFiltering::m_separators(QList<QChar>({QLatin1Char('_'
 QHash<QString, AdblockContentFiltering::RuleOption> AdblockContentFiltering::m_options({{QLatin1String("third-party"), ThirdPartyOption}, {QLatin1String("stylesheet"), StyleSheetOption}, {QLatin1String("image"), ImageOption}, {QLatin1String("script"), ScriptOption}, {QLatin1String("object"), ObjectOption}, {QLatin1String("object-subrequest"), ObjectSubRequestOption}, {QLatin1String("object_subrequest"), ObjectSubRequestOption}, {QLatin1String("subdocument"), SubDocumentOption}, {QLatin1String("xmlhttprequest"), XmlHttpRequestOption}, {QLatin1String("websocket"), WebSocketOption}, {QLatin1String("elemhide"), ElementHideOption}, {QLatin1String("generichide"), GenericHideOption}});
 QHash<NetworkManager::ResourceType, AdblockContentFiltering::RuleOption> AdblockContentFiltering::m_resourceTypes({{NetworkManager::ImageType, ImageOption}, {NetworkManager::ScriptType, ScriptOption}, {NetworkManager::StyleSheetType, StyleSheetOption}, {NetworkManager::ObjectType, ObjectOption}, {NetworkManager::XmlHttpRequestType, XmlHttpRequestOption}, {NetworkManager::SubFrameType, SubDocumentOption}, {NetworkManager::ObjectSubrequestType, ObjectSubRequestOption}, {NetworkManager::WebSocketType, WebSocketOption}});
 
-AdblockContentFiltering::AdblockContentFiltering(QObject *parent) : ContentFiltering(parent),
+AdblockContentFiltering::AdblockContentFiltering(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent) : ContentFilteringProfile(name, title, type, updateUrl, lastUpdate, languages, updateInterval, category, flags, parent),
 	m_root(nullptr)
 {
 }
 
-void AdblockContentFiltering::clear()
+bool AdblockContentFiltering::clear()
 {
+	//if (checkLoadingState())
+	//{
+	//	return;
+	//}
+
 	if (m_root)
 	{
 		QtConcurrent::run(this, &AdblockContentFiltering::deleteNode, m_root);
@@ -50,6 +55,8 @@ void AdblockContentFiltering::clear()
 	m_styleSheet.clear();
 	m_styleSheetWhiteList.clear();
 	m_styleSheetBlackList.clear();
+
+	return true;
 }
 
 void AdblockContentFiltering::parseRuleLine(QString line)
@@ -486,6 +493,11 @@ ContentFilteringManager::CheckResult AdblockContentFiltering::checkUrl(const QUr
 {
 	ContentFilteringManager::CheckResult result;
 
+	if (!beforeCheckUrl())
+	{
+		return result;
+	}
+
 	m_baseUrlHost = baseUrl.host();
 	m_requestUrl = requestUrl.url();
 	m_requestHost = requestUrl.host();
@@ -543,16 +555,22 @@ QString AdblockContentFiltering::getTitle() const
 
 QStringList AdblockContentFiltering::getStyleSheet()
 {
+	checkLoadingState();
+
 	return m_styleSheet;
 }
 
 QStringList AdblockContentFiltering::getStyleSheetBlackList(const QString &domain)
 {
+	checkLoadingState();
+
 	return m_styleSheetBlackList.values(domain);
 }
 
 QStringList AdblockContentFiltering::getStyleSheetWhiteList(const QString &domain)
 {
+	checkLoadingState();
+
 	return m_styleSheetWhiteList.values(domain);
 }
 
@@ -603,8 +621,15 @@ bool AdblockContentFiltering::parseUpdate(QNetworkReply *reply, QFile &file)
 	return true;
 }
 
-bool AdblockContentFiltering::loadRules(QFile &file)
+bool AdblockContentFiltering::loadRules()
 {
+	if (!loadRulesCheck())
+	{
+		return false;
+	}
+
+	QFile file(getPath());
+
 	if (m_domainExpression.pattern().isEmpty())
 	{
 		m_domainExpression = QRegularExpression(QLatin1String("[:\?&/=]"));
@@ -633,8 +658,17 @@ bool AdblockContentFiltering::loadRules(QFile &file)
 	return true;
 }
 
-bool AdblockContentFiltering::validate(QFile &file)
+bool AdblockContentFiltering::validate(const QString &path)
 {
+	QFile file(path);
+
+	if (!checkFile(file))
+	{
+		Console::addMessage(QCoreApplication::translate("main", "Invalid content filtering profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
+
+		return false;
+	}
+
 	QTextStream stream(&file);
 
 	if (stream.readLine().trimmed().startsWith(QLatin1String("[Adblock Plus"), Qt::CaseInsensitive))
@@ -654,6 +688,8 @@ bool AdblockContentFiltering::validate(QFile &file)
 				break;
 			}
 		}
+
+		loadTitle(getTitle());
 
 		return true;
 	}

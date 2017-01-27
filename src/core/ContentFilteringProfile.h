@@ -22,14 +22,13 @@
 #ifndef OTTER_ContentFilteringPROFILE_H
 #define OTTER_ContentFilteringPROFILE_H
 
+#include "AddonsManager.h"
 #include "ContentFilteringManager.h"
 
 namespace Otter
 {
 
-class ContentFiltering;
-
-class ContentFilteringProfile : public QObject
+class ContentFilteringProfile : public Addon
 {
 	Q_OBJECT
 
@@ -61,30 +60,39 @@ public:
 	void setUpdateInterval(int interval);
 	void setUpdateUrl(const QUrl &url);
 	QString getName() const;
-	QString getTitle() const;
+	virtual QString getTitle() const;
 	QUrl getUpdateUrl() const;
 	QDateTime getLastUpdate() const;
-	ContentFilteringManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
-	QStringList getStyleSheet();
-	QStringList getStyleSheetBlackList(const QString &domain);
-	QStringList getStyleSheetWhiteList(const QString &domain);
+	virtual ContentFilteringManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
+	virtual QStringList getStyleSheet();
+	virtual QStringList getStyleSheetBlackList(const QString &domain);
+	virtual QStringList getStyleSheetWhiteList(const QString &domain);
 	QList<QLocale::Language> getLanguages() const;
 	ProfileCategory getCategory() const;
 	ProfileFlags getFlags() const;
 	int getUpdateInterval() const;
-	bool clear();
+	virtual bool clear();
 	bool update();
 
 protected:
+	void loadTitle(const QString &title);
 	QString getPath() const;
-	bool loadRules();
-	bool validate(const QString &path);
+	virtual bool loadRules();
+	virtual bool validate(const QString &path);
+	bool checkFile(QFile &file);
+	bool checkLoadingState();
+	bool beforeCheckUrl();
+	bool loadRulesCheck();
+	bool resolveDomainExceptions(const QString &url, const QStringList &ruleList);
+	//virtual bool loadRules(QFile &file);
+	//virtual bool parseUpdate(QNetworkReply *reply, QFile &file);
+	//virtual bool validate(QFile &file);
 
 protected slots:
 	void updateReady();
 
 private:
-	ContentFiltering *m_resolver;
+	//ContentFiltering *m_resolver;
 	QNetworkReply *m_networkReply;
 	QString m_name;
 	QString m_title;
