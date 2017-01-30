@@ -21,6 +21,7 @@
 #include "ContentFilteringManager.h"
 #include "Console.h"
 #include "ContentFilteringProfile.h"
+#include "../modules/contentFiltering/AdblockContentFiltering.h"
 #include "SettingsManager.h"
 #include "SessionsManager.h"
 #include "Utils.h"
@@ -200,6 +201,11 @@ QStandardItemModel* ContentFilteringManager::createModel(QObject *parent, const 
 	QHash<ContentFilteringProfile::ProfileCategory, QMultiMap<QString, QList<QStandardItem*> > > categoryEntries;
 	QStandardItemModel *model(new QStandardItemModel(parent));
 	model->setHorizontalHeaderLabels(QStringList({tr("Title"), tr("Update Interval"), tr("Last Update")}));
+
+	if (m_profiles.isEmpty())
+	{
+		getProfiles();
+	}
 
 	for (int i = 0; i < m_profiles.count(); ++i)
 	{
@@ -504,7 +510,7 @@ QVector<ContentFilteringProfile*> ContentFilteringManager::getProfiles()
 				parsedLanguages.append(languages.at(j).toString());
 			}
 
-			ContentFilteringProfile *profile(new ContentFilteringProfile(profiles.at(i), title, type, updateUrl, QDateTime::fromString(profileSettings.value(QLatin1String("lastUpdate")).toString(), Qt::ISODate), parsedLanguages, profileSettings.value(QLatin1String("updateInterval")).toInt(), categoryTitles.value(profileSettings.value(QLatin1String("category")).toString()), flags, m_instance));
+			ContentFilteringProfile *profile(new AdblockContentFiltering(profiles.at(i), title, type, updateUrl, QDateTime::fromString(profileSettings.value(QLatin1String("lastUpdate")).toString(), Qt::ISODate), parsedLanguages, profileSettings.value(QLatin1String("updateInterval")).toInt(), categoryTitles.value(profileSettings.value(QLatin1String("category")).toString()), flags, m_instance));
 
 			m_profiles.append(profile);
 

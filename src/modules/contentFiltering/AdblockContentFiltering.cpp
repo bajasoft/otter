@@ -42,10 +42,10 @@ AdblockContentFiltering::AdblockContentFiltering(const QString &name, const QStr
 
 bool AdblockContentFiltering::clear()
 {
-	//if (checkLoadingState())
-	//{
-	//	return;
-	//}
+	if (!isLoaded(false))
+	{
+		return false;
+	}
 
 	if (m_root)
 	{
@@ -55,6 +55,8 @@ bool AdblockContentFiltering::clear()
 	m_styleSheet.clear();
 	m_styleSheetWhiteList.clear();
 	m_styleSheetBlackList.clear();
+
+	setLoaded(false);
 
 	return true;
 }
@@ -493,7 +495,7 @@ ContentFilteringManager::CheckResult AdblockContentFiltering::checkUrl(const QUr
 {
 	ContentFilteringManager::CheckResult result;
 
-	if (!beforeCheckUrl())
+	if (!profileValidation())
 	{
 		return result;
 	}
@@ -548,28 +550,23 @@ ContentFilteringManager::CheckResult AdblockContentFiltering::evaluateRulesInNod
 	return result;
 }
 
-QString AdblockContentFiltering::getTitle() const
-{
-	return m_title;
-}
-
 QStringList AdblockContentFiltering::getStyleSheet()
 {
-	checkLoadingState();
+	isLoaded();
 
 	return m_styleSheet;
 }
 
 QStringList AdblockContentFiltering::getStyleSheetBlackList(const QString &domain)
 {
-	checkLoadingState();
+	isLoaded();
 
 	return m_styleSheetBlackList.values(domain);
 }
 
 QStringList AdblockContentFiltering::getStyleSheetWhiteList(const QString &domain)
 {
-	checkLoadingState();
+	isLoaded();
 
 	return m_styleSheetWhiteList.values(domain);
 }
@@ -618,12 +615,21 @@ bool AdblockContentFiltering::parseUpdate(QNetworkReply *reply, QFile &file)
 		return false;
 	}
 
+	bool wasCleared(clear());
+
+	validate(getPath());
+
+	if (wasCleared)
+	{
+		loadRules();
+	}
+
 	return true;
 }
 
 bool AdblockContentFiltering::loadRules()
 {
-	if (!loadRulesCheck())
+	if (!loadingValidation())
 	{
 		return false;
 	}
@@ -662,7 +668,7 @@ bool AdblockContentFiltering::validate(const QString &path)
 {
 	QFile file(path);
 
-	if (!checkFile(file))
+	if (!fileValidation(file))
 	{
 		Console::addMessage(QCoreApplication::translate("main", "Invalid content filtering profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
 
@@ -679,7 +685,7 @@ bool AdblockContentFiltering::validate(const QString &path)
 
 			if (line.startsWith(QLatin1String("! Title: ")))
 			{
-				m_title = line.remove(QLatin1String("! Title: "));
+				setTitle(line.remove(QLatin1String("! Title: ")));
 
 				break;
 			}

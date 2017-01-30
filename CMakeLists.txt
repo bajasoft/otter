@@ -220,7 +220,6 @@ set(otter_src
 	src/ui/preferences/PreferencesSearchPageWidget.cpp
 	src/modules/backends/passwords/file/FilePasswordsStorageBackend.cpp
 	src/modules/contentFiltering/AdblockContentFiltering.cpp
-	src/modules/contentFiltering/ContentFiltering.cpp
 	src/modules/importers/html/HtmlBookmarksImporter.cpp
 	src/modules/importers/opera/OperaBookmarksImporter.cpp
 	src/modules/importers/opera/OperaNotesImporter.cpp

@@ -23,8 +23,6 @@
 #include "Console.h"
 #include "NetworkManagerFactory.h"
 #include "SessionsManager.h"
-#include "../modules/contentFiltering/AdblockContentFiltering.h"
-//#include "../modules/contentFiltering/ContentFiltering.h"
 
 #include <QtCore/QDir>
 #include <QtNetwork/QNetworkReply>
@@ -43,7 +41,7 @@ ContentFilteringProfile::ContentFilteringProfile(const QString &name, const QStr
 	m_category(category),
 	m_flags(flags),
 	m_updateInterval(updateInterval),
-	m_wasLoaded(false)
+	m_isLoaded(false)
 {
 	if (!languages.isEmpty())
 	{
@@ -54,15 +52,6 @@ ContentFilteringProfile::ContentFilteringProfile(const QString &name, const QStr
 			m_languages.append(QLocale(languages.at(i)).language());
 		}
 	}
-
-	//if (type == QLatin1String("adBlock"))
-	//{
-	//	m_resolver = new AdblockContentFiltering(this);
-	//}
-	//else
-	//{
-	//	m_resolver = new ContentFiltering(this);
-	//}
 
 	if (validate(getPath()) && m_updateInterval > 0 && (!m_lastUpdate.isValid() || m_lastUpdate.daysTo(QDateTime::currentDateTime()) > m_updateInterval))
 	{
@@ -83,18 +72,9 @@ void ContentFilteringProfile::updateReady()
 
 	QFile file(SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering/%1.txt")).arg(m_name));
 
-	if (m_resolver->parseUpdate(m_networkReply, file))
+	if (parseUpdate(m_networkReply, file))
 	{
 		m_lastUpdate = QDateTime::currentDateTime();
-
-		bool wasCleared(clear());
-
-		validate(getPath());
-
-		if (wasCleared)
-		{
-			loadRules();
-		}
 
 		emit profileModified(m_name);
 	}
@@ -157,6 +137,16 @@ QString ContentFilteringProfile::getPath() const
 	return SessionsManager::getWritableDataPath(QLatin1String("ContentFiltering/%1.txt")).arg(m_name);
 }
 
+QString ContentFilteringProfile::getDescription() const
+{
+	return QString();
+}
+
+QString ContentFilteringProfile::getVersion() const
+{
+	return QString();
+}
+
 QDateTime ContentFilteringProfile::getLastUpdate() const
 {
 	return m_lastUpdate;
@@ -167,65 +157,49 @@ QUrl ContentFilteringProfile::getUpdateUrl() const
 	return m_updateUrl;
 }
 
-ContentFilteringManager::CheckResult ContentFilteringProfile::checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType)
+QUrl ContentFilteringProfile::getHomePage() const
 {
-	//ContentFilteringManager::CheckResult result;
-
-	//if (!m_wasLoaded && !loadRules())
-	//{
-	//	return result;
-	//}
-	return ContentFilteringManager::CheckResult();
-	//return m_resolver->checkUrl(baseUrl, requestUrl, resourceType);
+	return QUrl();
 }
 
-bool ContentFilteringProfile::beforeCheckUrl()
+QIcon ContentFilteringProfile::getIcon() const
 {
-	if (!m_wasLoaded && !loadRules())
+	return QIcon();
+}
+
+ContentFilteringManager::CheckResult ContentFilteringProfile::checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType)
+{
+	return ContentFilteringManager::CheckResult();
+}
+
+bool ContentFilteringProfile::profileValidation()
+{
+	if (!m_isLoaded && !loadRules())
 	{
 		return false;
 	}
+
+	return true;
 }
 
 QStringList ContentFilteringProfile::getStyleSheet()
 {
-	//if (!m_wasLoaded)
-	//{
-	//	loadRules();
-	//}
-
-	//return m_resolver->getStyleSheet();
 	return QStringList();
 }
 
 QStringList ContentFilteringProfile::getStyleSheetBlackList(const QString &domain)
 {
-	//if (!m_wasLoaded)
-	//{
-	//	loadRules();
-	//}
-
-	//return m_resolver->getStyleSheetBlackList(domain);
 	return QStringList();
 }
 
 QStringList ContentFilteringProfile::getStyleSheetWhiteList(const QString &domain)
 {
-	//if (!m_wasLoaded)
-	//{
-	//	loadRules();
-	//}
-
-	//return m_resolver->getStyleSheetWhiteList(domain);
 	return QStringList();
 }
 
-bool ContentFilteringProfile::checkLoadingState()
+bool ContentFilteringProfile::parseUpdate(QNetworkReply *reply, QFile &file)
 {
-	if (!m_wasLoaded)
-	{
-		loadRules();
-	}
+	return false;
 }
 
 QList<QLocale::Language> ContentFilteringProfile::getLanguages() const
@@ -248,21 +222,32 @@ int ContentFilteringProfile::getUpdateInterval() const
 	return m_updateInterval;
 }
 
-bool ContentFilteringProfile::clear()
+bool ContentFilteringProfile::isLoaded(bool reload)
 {
-	if (!m_wasLoaded)
+	if (!reload)
 	{
-		return false;
+		return m_isLoaded;
 	}
 
-	m_resolver->clear();
+	if (!m_isLoaded)
+	{
+		loadRules();
+	}
 
-	m_wasLoaded = false;
+	return m_isLoaded;
+}
 
+void ContentFilteringProfile::setLoaded(bool loaded)
+{
+	m_isLoaded = loaded;
+}
+
+bool ContentFilteringProfile::clear()
+{
 	return true;
 }
 
-bool ContentFilteringProfile::loadRulesCheck()
+bool ContentFilteringProfile::loadingValidation()
 {
 	if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
 	{
@@ -271,23 +256,13 @@ bool ContentFilteringProfile::loadRulesCheck()
 		return false;
 	}
 
-	m_wasLoaded = true;
+	setLoaded(true);
+
+	return true;
 }
 
 bool ContentFilteringProfile::loadRules()
 {
-	//if (!QFile(getPath()).exists() && !m_updateUrl.isEmpty())
-	//{
-	//	update();
-
-	//	return false;
-	//}
-
-	//m_wasLoaded = true;
-
-	//QFile file(getPath());
-
-	//return m_resolver->loadRules(file);
 	return false;
 }
 
@@ -324,10 +299,8 @@ bool ContentFilteringProfile::update()
 	return true;
 }
 
-bool ContentFilteringProfile::checkFile(QFile &file)
+bool ContentFilteringProfile::fileValidation(QFile &file)
 {
-	//QFile file(path);
-
 	if (!file.exists())
 	{
 		return false;
@@ -340,8 +313,6 @@ bool ContentFilteringProfile::checkFile(QFile &file)
 		return false;
 	}
 
-	//file.close();
-
 	return true;
 }
 
@@ -349,8 +320,6 @@ void ContentFilteringProfile::loadTitle(const QString &title)
 {
 	if (!m_flags.testFlag(HasCustomTitleFlag))
 	{
-		//const QString title(m_resolver->getTitle());
-
 		if (!title.isEmpty())
 		{
 			m_title = title;
@@ -360,45 +329,6 @@ void ContentFilteringProfile::loadTitle(const QString &title)
 
 bool ContentFilteringProfile::validate(const QString &path)
 {
-	//QFile file(path);
-
-	//if (!file.exists())
-	//{
-	//	return true;
-	//}
-
-	//if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-	//{
-	//	Console::addMessage(QCoreApplication::translate("main", "Failed to open content blocking profile file: %1").arg(file.errorString()), Console::OtherCategory, Console::ErrorLevel, file.fileName());
-
-	//	return false;
-	//}
-
-	//checkFile(path);
-
-	//if (!m_resolver->validate(file))
-	//{
-	//	Console::addMessage(QCoreApplication::translate("main", "Invalid content blocking profile"), Console::OtherCategory, Console::ErrorLevel, file.fileName());
-
-	//	file.close();
-
-	//	return false;
-	//}
-
-	//loadTitle("title");
-
-	//if (!m_flags.testFlag(HasCustomTitleFlag))
-	//{
-	//	const QString title(m_resolver->getTitle());
-
-	//	if (!title.isEmpty())
-	//	{
-	//		m_title = m_resolver->getTitle();
-	//	}
-	//}
-
-	//file.close();
-
 	return true;
 }
 

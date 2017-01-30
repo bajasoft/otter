@@ -27,6 +27,7 @@
 #include "../../core/SessionsManager.h"
 #include "../../core/SettingsManager.h"
 #include "../../core/Utils.h"
+#include "../../modules/contentFiltering/AdblockContentFiltering.h"
 
 #include "ui_ContentFilteringDialog.h"
 
@@ -330,7 +331,7 @@ void ContentFilteringDialog::save()
 			}
 			else
 			{
-				profile = new ContentFilteringProfile(QLatin1String("custom"), tr("Custom Rules"), QLatin1String("adBlock"), QUrl(), QDateTime(), QList<QString>(), 0, ContentFilteringProfile::OtherCategory, ContentFilteringProfile::NoFlags);
+				profile = new AdblockContentFiltering(QLatin1String("custom"), tr("Custom Rules"), QLatin1String("adBlock"), QUrl(), QDateTime(), QList<QString>(), 0, ContentFilteringProfile::OtherCategory, ContentFilteringProfile::NoFlags);
 
 				ContentFilteringManager::addProfile(profile);
 			}

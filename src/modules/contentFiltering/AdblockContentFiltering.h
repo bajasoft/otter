@@ -35,16 +35,14 @@ class AdblockContentFiltering : public ContentFilteringProfile
 	Q_OBJECT
 
 public:
-	explicit AdblockContentFiltering(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent);
+	explicit AdblockContentFiltering(const QString &name, const QString &title, const QString &type, const QUrl &updateUrl, const QDateTime lastUpdate, const QList<QString> languages, int updateInterval, const ProfileCategory &category, const ProfileFlags &flags, QObject *parent = nullptr);
 
-	bool clear() override;
 	ContentFilteringManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType) override;
-	QString getTitle() const override;
 	QStringList getStyleSheet() override;
 	QStringList getStyleSheetBlackList(const QString &domain) override;
 	QStringList getStyleSheetWhiteList(const QString &domain) override;
+	bool clear() override;
 	bool loadRules() override;
-	bool parseUpdate(QNetworkReply *reply, QFile &file) override;
 	bool validate(const QString &path) override;
 
 protected:
@@ -111,13 +109,13 @@ protected:
 	ContentFilteringManager::CheckResult checkUrlSubstring(Node *node, const QString &subString, QString currentRule, NetworkManager::ResourceType resourceType);
 	ContentFilteringManager::CheckResult checkRuleMatch(AdBlockRule *rule, const QString &currentRule, NetworkManager::ResourceType resourceType);
 	ContentFilteringManager::CheckResult evaluateRulesInNode(Node *node, const QString &currentRule, NetworkManager::ResourceType resourceType);
+	bool parseUpdate(QNetworkReply *reply, QFile &file) override;
 
 private:
 	Node *m_root;
 	QString m_requestUrl;
 	QString m_requestHost;
 	QString m_baseUrlHost;
-	QString m_title;
 	QRegularExpression m_domainExpression;
 	QStringList m_styleSheet;
 	QMultiHash<QString, QString> m_styleSheetBlackList;

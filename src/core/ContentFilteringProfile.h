@@ -25,6 +25,8 @@
 #include "AddonsManager.h"
 #include "ContentFilteringManager.h"
 
+#include <QtCore/QFile>
+
 namespace Otter
 {
 
@@ -60,8 +62,12 @@ public:
 	void setUpdateInterval(int interval);
 	void setUpdateUrl(const QUrl &url);
 	QString getName() const;
-	virtual QString getTitle() const;
+	QString getDescription() const override;
+	QString getVersion() const override;
+	QString getTitle() const;
 	QUrl getUpdateUrl() const;
+	QUrl getHomePage() const override;
+	QIcon getIcon() const override;
 	QDateTime getLastUpdate() const;
 	virtual ContentFilteringManager::CheckResult checkUrl(const QUrl &baseUrl, const QUrl &requestUrl, NetworkManager::ResourceType resourceType);
 	virtual QStringList getStyleSheet();
@@ -76,23 +82,21 @@ public:
 
 protected:
 	void loadTitle(const QString &title);
+	void setLoaded(bool loaded);
 	QString getPath() const;
+	bool fileValidation(QFile &file);
+	bool profileValidation();
+	bool isLoaded(bool reload = true);
+	bool loadingValidation();
+	bool resolveDomainExceptions(const QString &url, const QStringList &ruleList);
 	virtual bool loadRules();
 	virtual bool validate(const QString &path);
-	bool checkFile(QFile &file);
-	bool checkLoadingState();
-	bool beforeCheckUrl();
-	bool loadRulesCheck();
-	bool resolveDomainExceptions(const QString &url, const QStringList &ruleList);
-	//virtual bool loadRules(QFile &file);
-	//virtual bool parseUpdate(QNetworkReply *reply, QFile &file);
-	//virtual bool validate(QFile &file);
+	virtual bool parseUpdate(QNetworkReply *reply, QFile &file);
 
 protected slots:
 	void updateReady();
 
 private:
-	//ContentFiltering *m_resolver;
 	QNetworkReply *m_networkReply;
 	QString m_name;
 	QString m_title;
@@ -102,7 +106,7 @@ private:
 	ProfileCategory m_category;
 	ProfileFlags m_flags;
 	int m_updateInterval;
-	bool m_wasLoaded;
+	bool m_isLoaded;
 
 signals:
 	void profileModified(const QString &profile);
