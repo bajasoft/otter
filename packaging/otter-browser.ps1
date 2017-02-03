@@ -2,18 +2,20 @@
 # Description: Build packages with installation
 # Type: script
 # Author: bajasoft <jbajer@gmail.com>
-# Version: 0.4
+# Version: 0.5
 
 # How to run PowerShell scripts: http://technet.microsoft.com/en-us/library/ee176949.aspx
 
 # Command line parameters
 # [-build] - make Release build
 # [-cmake] - run CMake
+# [-pack] - create packages for distribution
 # [-file] - set name of json file to parse. Example: -f name.of.file
 
 Param(
 [switch]$build,
 [switch]$cmake,
+[switch]$pack,
 [string]$file
 )
 
@@ -68,68 +70,72 @@ function main
         Copy-Item ($Global:solutionPath + "Release/*") $Global:packageInputPath
     }
 
-    $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
-
-    # Set values to Inno setup script
-    if (Test-Path $Global:innoScriptPath) 
+    # Run packaging if required
+    if ($pack)
     {
-        Write-Host "Preparing Inno setup script..."
+        $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
 
-        $content = Get-Content $Global:innoScriptPath
-
-        $content |
-        Select-String -Pattern "ArchitecturesInstallIn64BitMode=x64" -NotMatch |
-        Select-String -Pattern "ArchitecturesAllowed=x64" -NotMatch |
-        ForEach-Object {
-            if ($Global:architecture -eq "win64" -and $_ -match "^DefaultGroupName.+")
-            {
-                "ArchitecturesInstallIn64BitMode=x64"
-                "ArchitecturesAllowed=x64"
-            }
-            
-            $_ -replace "#define MyAppVersion.+", ("#define MyAppVersion `"$Global:mainVersion" + "-" + "$Global:contextVersion`"")`
-             -replace "OutputBaseFilename=.+", "OutputBaseFilename=$packageName-setup"`
-             -replace "LicenseFile=.+", ("LicenseFile=$Global:packageInputPath" + "COPYING")`
-             -replace "OutputDir=.+", "OutputDir=$Global:packageOutputPath"`
-             -replace "VersionInfoVersion=.+", "VersionInfoVersion=$Global:mainVersion"`
-             -replace ("Source:.*; + """), ("Source: " + """$Global:packageInputPath*""" + ";")
-        } |
-        Set-Content $Global:innoScriptPath
-    }
-    else
-    {
-        Write-Host "Inno setup script not found, skipping..." -foregroundcolor red
-    }
-
-    # Set package name to updater config
-    if (Test-Path $Global:updateConfiguration) 
-    {
-        Write-Host "Preparing update script..."
-
-        $content = Get-Content $Global:updateConfiguration
-
-        $content |
-        ForEach-Object {
-            $_ -replace ".*? `: \[$", "`t`t`"$Global:packageName`" `: ["
-        } |
-        Set-Content $Global:updateConfiguration
-    }
-
-    # Do full build
-    preparePackages
-
-    # Prepare XML for updater
-    if ((Test-Path $Global:rubyPath) -and (Test-Path $Global:updateScriptPath))
-    {
-        $updateXml = ($packageName + ".xml");
-
-        If (Test-Path $updateXml)
+        # Set values to Inno setup script
+        if (Test-Path $Global:innoScriptPath) 
         {
-            Remove-Item $updateXml
+            Write-Host "Preparing Inno setup script..."
+
+            $content = Get-Content $Global:innoScriptPath
+
+            $content |
+            Select-String -Pattern "ArchitecturesInstallIn64BitMode=x64" -NotMatch |
+            Select-String -Pattern "ArchitecturesAllowed=x64" -NotMatch |
+            ForEach-Object {
+                if ($Global:architecture -eq "win64" -and $_ -match "^DefaultGroupName.+")
+                {
+                    "ArchitecturesInstallIn64BitMode=x64"
+                    "ArchitecturesAllowed=x64"
+                }
+            
+                $_ -replace "#define MyAppVersion.+", ("#define MyAppVersion `"$Global:mainVersion" + "-" + "$Global:contextVersion`"")`
+                 -replace "OutputBaseFilename=.+", "OutputBaseFilename=$packageName-setup"`
+                 -replace "LicenseFile=.+", ("LicenseFile=$Global:packageInputPath" + "COPYING")`
+                 -replace "OutputDir=.+", "OutputDir=$Global:packageOutputPath"`
+                 -replace "VersionInfoVersion=.+", "VersionInfoVersion=$Global:mainVersion"`
+                 -replace ("Source:.*; + """), ("Source: " + """$Global:packageInputPath*""" + ";")
+            } |
+            Set-Content $Global:innoScriptPath
+        }
+        else
+        {
+            Write-Host "Inno setup script not found, skipping..." -foregroundcolor red
         }
 
-        # Rename update script with current version/platform
-        Rename-Item ($Global:packageOutputPath + "/otter-browser-update.xml") $updateXml
+        # Set package name to updater config
+        if (Test-Path $Global:updateConfiguration) 
+        {
+            Write-Host "Preparing update script..."
+
+            $content = Get-Content $Global:updateConfiguration
+
+            $content |
+            ForEach-Object {
+                $_ -replace ".*? `: \[$", "`t`t`"$Global:packageName`" `: ["
+            } |
+            Set-Content $Global:updateConfiguration
+        }
+
+        # Do full build
+        preparePackages
+
+        # Prepare XML for updater
+        if ((Test-Path $Global:rubyPath) -and (Test-Path $Global:updateScriptPath))
+        {
+            $updateXml = ($packageName + ".xml");
+
+            If (Test-Path $updateXml)
+            {
+                Remove-Item $updateXml
+            }
+
+            # Rename update script with current version/platform
+            Rename-Item ($Global:packageOutputPath + "/otter-browser-update.xml") $updateXml
+        }
     }
 
     Remove-Item stdout.txt
