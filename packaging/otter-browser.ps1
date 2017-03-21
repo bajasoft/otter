@@ -49,6 +49,8 @@ function main
         $Global:architecture = "win32"
     }
 
+    $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
+
     # Run build if required
     if ($build -and (Test-Path $Global:compilerPath) -and (Test-Path $Global:solutionPath))
     {
@@ -67,14 +69,23 @@ function main
 
         Write-Host "Copy executable..."
 
+        if (!(Test-Path $Global:packageInputPath))
+        {
+            New-Item $Global:packageInputPath -type directory
+        }
+
+        if (!(Test-Path $Global:PDBOutputPath))
+        {
+            New-Item $Global:PDBOutputPath -type directory
+        }
+
         Copy-Item ($Global:solutionPath + "Release/*") $Global:packageInputPath
+        Copy-Item ($Global:solutionPath + "Release/*.pdb") ($Global:PDBOutputPath + $Global:packageName + ".pdb")
     }
 
     # Run packaging if required
     if ($pack)
     {
-        $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
-
         # Set values to Inno setup script
         if (Test-Path $Global:innoScriptPath) 
         {
@@ -218,6 +229,7 @@ function initGlobalVariables
     $Global:projectPath = If($json.projectPath) {$json.projectPath} Else {"C:\develop\github\otter\"}
     $Global:packageOutputPath = If($json.packageOutputPath) {$json.packageOutputPath} Else {"C:\develop\github\"}
     $Global:packageInputPath = If($json.packageInputPath) {$json.packageInputPath} Else {"C:\downloads\Otter\"}
+    $Global:PDBOutputPath = If($json.PDBOutputPath) {$json.PDBOutputPath} Else {"C:\develop\PDBs\"}
     $Global:zipBinaryPath = If($json.zipBinaryPath) {$json.zipBinaryPath} Else {"C:\Program Files\7-Zip\7z.exe"}
     $Global:innoBinaryPath = If($json.innoBinaryPath) {$json.innoBinaryPath} Else {"C:\Program Files (x86)\Inno Setup 5\ISCC.exe"}
     $Global:innoScriptPath = If($json.innoScriptPath) {$json.innoScriptPath} Else {".\otter-browser.iss"}

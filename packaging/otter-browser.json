@@ -12,6 +12,7 @@
   "solutionPath": "C:\\develop\\github\\webengine\\",
   "packageOutputPath": "C:\\develop\\github\\",
   "packageInputPath": "C:\\downloads\\otter-browser-win64-weekly131-qtwebengine\\",
+  "PDBOutputPath": "C:\\develop\\PDBs\\",
   "sevenZipBinaryPath": "C:\\Program Files\\7-Zip\\7z.exe",
   "innoBinaryPath": "C:\\Program Files (x86)\\Inno Setup 5\\ISCC.exe",
   "innoScriptPath": "..\\..\\otter-browser.iss",
