@@ -24,7 +24,7 @@ function main
 {   
     initGlobalVariables
 
-    # run CMake only when required by user
+    # run CMake only when requested by user
     if ($cmake -and (Test-Path $Global:cmakePath))
     {
         Write-Host "Running CMake..."
@@ -33,7 +33,7 @@ function main
 
         foreach ($argument in $Global:cmakeArguments) # Adding arguments for CMake
         {
-            $arguments += " -" + $argument
+            $arguments += " -D" + $argument
         }
 
         $arguments += " -G `"" + $Global:cmakeCompiler + "`" " + $Global:projectPath
@@ -67,7 +67,7 @@ function main
         
         testResults
 
-        Write-Host "Copy executable..."
+        Write-Host "Copying executable..."
 
         if (!(Test-Path $Global:packageInputPath))
         {
@@ -86,10 +86,10 @@ function main
     # Run packaging if required
     if ($pack)
     {
-        # Set values to Inno setup script
+        # Set values to Inno Setup script
         if (Test-Path $Global:innoScriptPath) 
         {
-            Write-Host "Preparing Inno setup script..."
+            Write-Host "Preparing Inno Setup script..."
 
             $content = Get-Content $Global:innoScriptPath
 
@@ -114,7 +114,7 @@ function main
         }
         else
         {
-            Write-Host "Inno setup script not found, skipping..." -foregroundcolor red
+            Write-Host "Inno Setup script not found, skipping..." -foregroundcolor red
         }
 
         # Set package name to updater config
@@ -236,7 +236,7 @@ function initGlobalVariables
     $Global:updateScriptPath = If($json.updateScriptPath) {$json.updateScriptPath} Else {".\otter-browser.rb"}
     $Global:rubyPath = If($json.rubyPath) {$json.rubyPath} else {"C:\Ruby22-x64\bin\ruby.exe"}
     $Global:compilerPath = If($json.compilerPath) {$json.compilerPath} else {"C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"}
-    $Global:solutionPath = If($json.solutionPath) {$json.solutionPath} else {"C:\develop\github\otter-browser\"}
+    $Global:buildPath = If($json.buildPath) {$json.buildPath} else {"C:\develop\github\otter-browser\"}
     $Global:mainVersion = If($json.mainVersion) {$json.mainVersion} Else {"1.0"}
     $Global:contextVersion = If($json.contextVersion) {$json.contextVersion} Else {"dev"}
     $Global:updateConfiguration = If($json.updateConfiguration) {$json.updateConfiguration} Else {".\otter-browser-update-win.json"}
