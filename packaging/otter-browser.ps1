@@ -2,121 +2,205 @@
 # Description: Build packages with installation
 # Type: script
 # Author: bajasoft <jbajer@gmail.com>
-# Version: 0.2
+# Version: 0.5
 
 # How to run PowerShell scripts: http://technet.microsoft.com/en-us/library/ee176949.aspx
 
 # Command line parameters
-# [-o] - set output file name (otter-browser.ps1 -o nameOfFile)
-# [-a] - set architecture of binaries (Argument: 32/64)
-# [-t] - type of build, default is weekly. Ignored if -a is included (Argument: weekly/beta/release)
+# [-build] - make Release build
+# [-cmake] - run CMake
+# [-pack] - create packages for distribution
+# [-file] - set name of json file to parse. Example: -f name.of.file
 
 Param(
-  [int]$a,
-  [string]$o,
-  [string]$t
+[switch]$build,
+[switch]$cmake,
+[switch]$pack,
+[string]$file
 )
-
-# Global values
-$Global:outputPath = "C:\develop\github\"
-$Global:inputPath = "C:\downloads\Otter\"
-$Global:7ZipBinaryPath = "C:\Program Files\7-Zip\7z.exe"
-$Global:innoBinaryPath = "C:\Program Files (x86)\Inno Setup 5\ISCC.exe"
-$Global:innoScriptPath = ".\otter-browser.iss"
-$Global:configPath = ".\otter\config.h"
 
 # Main-function
 function main 
 {   
-    "Packaging..."
+    initGlobalVariables
 
-    # Find version information
-    ForEach ($line in Get-Content $Global:configPath)
+    # run CMake only when requested by user
+    if ($cmake -and (Test-Path $Global:cmakePath))
     {
-        if ($line -like '*OTTER_VERSION_MAIN*')
+        Write-Host "Running CMake..."
+
+        Get-ChildItem -Path $Global:solutionPath -Include * -File -Recurse | foreach { $_.Delete()}
+
+        foreach ($argument in $Global:cmakeArguments) # Adding arguments for CMake
         {
-            $mainVersion = $line -replace '^#define OTTER_VERSION_MAIN ' -replace '"'
+            $arguments += " -D" + $argument
+        }
+
+        $arguments += " -G `"" + $Global:cmakeCompiler + "`" " + $Global:projectPath
+
+        # Results from CMake are written to stderr.txt and stdout.txt in script directory
+        Start-Process -NoNewWindow -Wait -WorkingDirectory $Global:solutionPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:cmakePath $arguments
+
+        testResults
+    }
+
+    if ($Global:architecture -ne "win64")
+    {
+        $Global:architecture = "win32"
+    }
+
+    $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
+
+    # Run build if required
+    if ($build -and (Test-Path $Global:compilerPath) -and (Test-Path $Global:solutionPath))
+    {
+        Write-Host "Building solution..."
+
+        if ($Global:cmakeCompiler.Contains("MinGW"))
+        {
+            Start-Process -NoNewWindow -Wait -WorkingDirectory $Global:solutionPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath  -ArgumentList "-j4"
+        }
+        else
+        {
+            Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath -ArgumentList "/p:Configuration=Release", ($Global:solutionPath + "otter-browser.sln")
         }
         
-        if ($line -like '*OTTER_VERSION_WEEKLY*')
+        testResults
+
+        Write-Host "Copying executable..."
+
+        if (!(Test-Path $Global:packageInputPath))
         {
-            $weeklyVersion = $line -replace '^#define OTTER_VERSION_WEEKLY ' -replace '"'
+            New-Item $Global:packageInputPath -type directory
         }
-        
-        if ($line -like '*OTTER_VERSION_CONTEXT*')
+
+        if (!(Test-Path $Global:PDBOutputPath))
         {
-            $contextVersion = $line -replace '^#define OTTER_VERSION_CONTEXT ' -replace '"'
+            New-Item $Global:PDBOutputPath -type directory
         }
+
+        Copy-Item ($Global:solutionPath + "Release/*") $Global:packageInputPath
+        Copy-Item ($Global:solutionPath + "Release/*.pdb") ($Global:PDBOutputPath + $Global:packageName + ".pdb")
     }
 
-    # Set architecture of binaries
-    if ($a -eq 64)
+    # Run packaging if required
+    if ($pack)
     {
-        $architecture = 64
-    }
-    else
-    {
-        $architecture = 32
-    }
-
-    if(!$o)
-    {
-        # Type of build
-        switch ($t)
+        # Set values to Inno Setup script
+        if (Test-Path $Global:innoScriptPath) 
         {
-            "beta"
-            {
-                $packageName = "otter-browser-win" + $architecture + "-" + $contextVersion
-                $setupName = "otter-browser-win" + $architecture + "-" + $contextVersion + "-setup"
-            }
-            "release"
-            {
-                #TODO
-            }
-            default
-            {
-                $packageName = "otter-browser-win" + $architecture + "-weekly" + $weeklyVersion
-                $setupName = "otter-browser-win" + $architecture + "-weekly" + $weeklyVersion + "-setup"
-            }
+            Write-Host "Preparing Inno Setup script..."
+
+            $content = Get-Content $Global:innoScriptPath
+
+            $content |
+            Select-String -Pattern "ArchitecturesInstallIn64BitMode=x64" -NotMatch |
+            Select-String -Pattern "ArchitecturesAllowed=x64" -NotMatch |
+            ForEach-Object {
+                if ($Global:architecture -eq "win64" -and $_ -match "^DefaultGroupName.+")
+                {
+                    "ArchitecturesInstallIn64BitMode=x64"
+                    "ArchitecturesAllowed=x64"
+                }
+            
+                $_ -replace "#define MyAppVersion.+", ("#define MyAppVersion `"$Global:mainVersion" + "-" + "$Global:contextVersion`"")`
+                 -replace "OutputBaseFilename=.+", "OutputBaseFilename=$packageName-setup"`
+                 -replace "LicenseFile=.+", ("LicenseFile=$Global:packageInputPath" + "COPYING")`
+                 -replace "OutputDir=.+", "OutputDir=$Global:packageOutputPath"`
+                 -replace "VersionInfoVersion=.+", "VersionInfoVersion=$Global:mainVersion"`
+                 -replace ("Source:.*; + """), ("Source: " + """$Global:packageInputPath*""" + ";")
+            } |
+            Set-Content $Global:innoScriptPath
         }
+        else
+        {
+            Write-Host "Inno Setup script not found, skipping..." -foregroundcolor red
+        }
+
+        # Do full build
+        preparePackages
     }
-    else
-    {
-        $packageName = $o;
-        $setupName =  $packageName + "-setup";
-    }
 
-    $7zipFileName = $Global:outputPath + $packageName + ".7z"
-    $zipFileName = $Global:outputPath + $packageName + ".zip"
+    Remove-Item stdout.txt
+    Remove-Item stderr.txt
 
-    # Set values to Inno setup script
-    $content = Get-Content $Global:innoScriptPath
-
-    $content |
-    Select-String -Pattern "ArchitecturesInstallIn64BitMode=x64" -NotMatch |
-    Select-String -Pattern "ArchitecturesAllowed=x64" -NotMatch |
-    ForEach-Object {
-       if ($architecture -eq 64 -and $_ -match "^DefaultGroupName.+")
-       {
-            "ArchitecturesInstallIn64BitMode=x64"
-            "ArchitecturesAllowed=x64"
-       }
-
-       $_ -replace "#define MyAppVersion.+", ("#define MyAppVersion `"$mainVersion" + "$contextVersion`"") -replace "OutputBaseFilename=.+", "OutputBaseFilename=$setupName" -replace "LicenseFile=.+", ("LicenseFile=$Global:inputPath" + "COPYING") -replace "OutputDir=.+", "OutputDir=$Global:outputPath" -replace "VersionInfoVersion=.+", "VersionInfoVersion=$mainVersion"
-     } |
-    Set-Content $Global:innoScriptPath
-
-    # Do full build
-    fullBuild $7zipFileName $zipFileName
-
-    "Finished!"
+    Write-Host "Finished!"
 }
 
-function fullBuild ($7zipFileName, $zipFileName)
+function preparePackages
 {
-    Start-Process -NoNewWindow -Wait $Global:innoBinaryPath -ArgumentList $Global:innoScriptPath
-    Start-Process -NoNewWindow -Wait $Global:7ZipBinaryPath -ArgumentList "a", $7zipFileName, ($Global:inputPath + "*"), "-mmt4", "-mx9", "-m0=lzma2"
-    Start-Process -NoNewWindow -Wait $Global:7ZipBinaryPath -ArgumentList "a", "-tzip", $zipFileName, $Global:inputPath, "-mx5"
+    Write-Host "Packaging..."
+
+    # Inno Setup
+    if ((Test-Path $Global:innoBinaryPath) -and (Test-Path $Global:innoScriptPath))
+    {
+         Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:innoBinaryPath -ArgumentList $Global:innoScriptPath
+
+         testResults
+    }
+    else
+    {
+        Write-Host "Building installer skipped, script or Inno binary not found..." -foregroundcolor red
+    }
+
+    # 7Zip
+    if (Test-Path $Global:zipBinaryPath)
+    {
+        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:zipBinaryPath -ArgumentList "a", ($Global:packageOutputPath + $Global:packageName + ".7z"), ($Global:packageInputPath + "*"), "-mmt4", "-mx9", "-m0=lzma2"
+        
+        testResults
+        
+        Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:zipBinaryPath -ArgumentList "a", "-tzip", ($Global:packageOutputPath + $Global:packageName + ".zip"), $Global:packageInputPath, "-mx5"
+        
+        testResults
+    }
+    else
+    {
+        Write-Host "Building archives skipped, 7zip not found..." -foregroundcolor red
+    }
+}
+
+# Prints error from output and closes script
+function testResults
+{
+    $errContent = (Get-Content stderr.txt)
+
+    If ($errContent -ne $Null)
+    {
+        Write-Host "`n"
+        
+        $errContent
+        
+        Write-Host "`nExiting due to critical error! Please check stdout.txt for more info" -ForegroundColor Red
+
+        exit
+    }
+}
+
+function initGlobalVariables
+{
+    Write-Host "Initializing global variables..."
+
+    $jsonFile = if ($file) {$file} else {".\otter-browser.json"}
+
+    $json = (Get-Content $jsonFile -Raw) | ConvertFrom-Json
+    
+    $Global:cmakePath = If($json.cmakePath) {$json.cmakePath} Else {"C:\Program Files (x86)\CMake\bin\cmake.exe"}
+    $Global:cmakeCompiler = If($json.cmakeCompiler) {$json.cmakeCompiler} Else {"Visual Studio 14 2015 Win64"}
+    $Global:cmakeArguments = If($json.cmakeArguments) {$json.cmakeArguments} Else {""}
+    $Global:projectPath = If($json.projectPath) {$json.projectPath} Else {"C:\develop\github\otter\"}
+    $Global:packageOutputPath = If($json.packageOutputPath) {$json.packageOutputPath} Else {"C:\develop\github\"}
+    $Global:packageInputPath = If($json.packageInputPath) {$json.packageInputPath} Else {"C:\downloads\Otter\"}
+    $Global:PDBOutputPath = If($json.PDBOutputPath) {$json.PDBOutputPath} Else {"C:\develop\PDBs\"}
+    $Global:zipBinaryPath = If($json.zipBinaryPath) {$json.zipBinaryPath} Else {"C:\Program Files\7-Zip\7z.exe"}
+    $Global:innoBinaryPath = If($json.innoBinaryPath) {$json.innoBinaryPath} Else {"C:\Program Files (x86)\Inno Setup 5\ISCC.exe"}
+    $Global:innoScriptPath = If($json.innoScriptPath) {$json.innoScriptPath} Else {".\otter-browser.iss"}
+    $Global:compilerPath = If($json.compilerPath) {$json.compilerPath} else {"C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"}
+    $Global:buildPath = If($json.buildPath) {$json.buildPath} else {"C:\develop\github\otter-browser\"}
+    $Global:mainVersion = If($json.mainVersion) {$json.mainVersion} Else {"1.0"}
+    $Global:contextVersion = If($json.contextVersion) {$json.contextVersion} Else {"dev"}
+    $Global:architecture = If($json.architecture) {$json.architecture} Else {"64"}
+    $Global:packageName = If($json.packageName) {$json.packageName} Else {"otter-browser"}
 }
 
 # Entry point
