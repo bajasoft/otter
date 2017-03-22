@@ -25,21 +25,22 @@ function main
     initGlobalVariables
 
     # run CMake only when requested by user
-    if ($cmake -and (Test-Path $Global:cmakePath))
+    if (($cmake -or !(Test-Path $Global:buildPath)) -and (Test-Path $Global:cmakePath))
     {
         Write-Host "Running CMake..."
 
-        Get-ChildItem -Path $Global:solutionPath -Include * -File -Recurse | foreach { $_.Delete()}
+        Get-ChildItem -Path $Global:buildPath -Include * -File -Recurse | foreach { $_.Delete()}
 
         foreach ($argument in $Global:cmakeArguments) # Adding arguments for CMake
         {
             $arguments += " -D" + $argument
         }
 
-        $arguments += " -G `"" + $Global:cmakeCompiler + "`" " + $Global:projectPath
+        $arguments += " " + $Global:projectPath
 
         # Results from CMake are written to stderr.txt and stdout.txt in script directory
-        Start-Process -NoNewWindow -Wait -WorkingDirectory $Global:solutionPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:cmakePath $arguments
+        $process = Start-Process -NoNewWindow -passthru -WorkingDirectory $Global:buildPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:cmakePath $arguments
+        $process.WaitForExit();
 
         testResults
     }
@@ -52,17 +53,17 @@ function main
     $Global:packageName = $Global:packageName + "-" + $Global:architecture + "-" + $Global:contextVersion;
 
     # Run build if required
-    if ($build -and (Test-Path $Global:compilerPath) -and (Test-Path $Global:solutionPath))
+    if ($build -and (Test-Path $Global:compilerPath) -and (Test-Path $Global:buildPath))
     {
         Write-Host "Building solution..."
 
-        if ($Global:cmakeCompiler.Contains("MinGW"))
+        if ($Global:cmakeArguments.Contains("MinGW"))
         {
-            Start-Process -NoNewWindow -Wait -WorkingDirectory $Global:solutionPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath  -ArgumentList "-j4"
+            Start-Process -NoNewWindow -Wait -WorkingDirectory $Global:buildPath -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath  -ArgumentList "-j4"
         }
         else
         {
-            Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath -ArgumentList "/p:Configuration=Release", ($Global:solutionPath + "otter-browser.sln")
+            Start-Process -NoNewWindow -Wait -RedirectStandardError stderr.txt -RedirectStandardOutput stdout.txt $Global:compilerPath -ArgumentList "/p:Configuration=Release", ($Global:buildPath + "otter-browser.sln")
         }
         
         testResults
@@ -79,8 +80,8 @@ function main
             New-Item $Global:PDBOutputPath -type directory
         }
 
-        Copy-Item ($Global:solutionPath + "Release/*") $Global:packageInputPath
-        Copy-Item ($Global:solutionPath + "Release/*.pdb") ($Global:PDBOutputPath + $Global:packageName + ".pdb")
+        Copy-Item ($Global:buildPath + "Release/*") $Global:packageInputPath
+        Copy-Item ($Global:buildPath + "Release/*.pdb") ($Global:PDBOutputPath + $Global:packageName + ".pdb")
     }
 
     # Run packaging if required
@@ -121,7 +122,7 @@ function main
         preparePackages
     }
 
-    Remove-Item stdout.txt
+    #Remove-Item stdout.txt
     Remove-Item stderr.txt
 
     Write-Host "Finished!"
@@ -186,7 +187,6 @@ function initGlobalVariables
     $json = (Get-Content $jsonFile -Raw) | ConvertFrom-Json
     
     $Global:cmakePath = If($json.cmakePath) {$json.cmakePath} Else {"C:\Program Files (x86)\CMake\bin\cmake.exe"}
-    $Global:cmakeCompiler = If($json.cmakeCompiler) {$json.cmakeCompiler} Else {"Visual Studio 14 2015 Win64"}
     $Global:cmakeArguments = If($json.cmakeArguments) {$json.cmakeArguments} Else {""}
     $Global:projectPath = If($json.projectPath) {$json.projectPath} Else {"C:\develop\github\otter\"}
     $Global:packageOutputPath = If($json.packageOutputPath) {$json.packageOutputPath} Else {"C:\develop\github\"}

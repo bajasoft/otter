@@ -1,8 +1,10 @@
 {
   "cmakePath": "C:\\Program Files (x86)\\CMake\\bin\\cmake.exe",
-  "cmakeCompiler": "Visual Studio 14 2015 Win64",
   "cmakeArguments": 
   [
+	"CMAKE_GENERATOR_PLATFORM=x64",
+	"CMAKE_C_COMPILER=C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\bin\\x86_amd64\\cl.exe",
+	"CMAKE_CXX_COMPILER=C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\bin\\x86_amd64\\cl.exe",
     "Qt5_DIR:STRING=C:\\develop\\Qt\\5.7\\msvc2015_64\\lib\\cmake\\Qt5\\",
     "Qt5WinExtras_DIR:STRING=C:\\develop\\Qt\\5.7\\msvc2015_64\\lib\\cmake\\Qt5WinExtras\\",
     "Qt5WebEngineWidgets_DIR:STRING=C:\\develop\\Qt\\5.7\\msvc2015_64\\lib\\cmake\\Qt5WebEngineWidgets\\",
