@@ -142,4 +142,9 @@ bool PlatformIntegration::installUpdate() const
 	return false;
 }
 
+bool PlatformIntegration::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+{
+	return false;
+}
+
 }

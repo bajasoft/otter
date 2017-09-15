@@ -54,6 +54,7 @@ public:
 public slots:
 	virtual void showNotification(Notification *notification);
 	virtual bool setAsDefaultBrowser();
+	virtual bool nativeEventFilter(const QByteArray &eventType, void *message, long *result);
 
 protected:
 	virtual QString getUpdaterBinary() const;

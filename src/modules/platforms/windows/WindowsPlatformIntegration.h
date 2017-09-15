@@ -111,6 +111,7 @@ protected:
 	QString getUpdaterBinary() const override;
 	bool registerToSystem();
 	bool isBrowserRegistered() const;
+	bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
 
 protected slots:
 	void removeWindow(MainWindow *window);

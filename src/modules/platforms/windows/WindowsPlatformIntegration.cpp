@@ -77,6 +77,9 @@ WindowsPlatformIntegration::WindowsPlatformIntegration(Application *parent) : Pl
 		tasks->addLink(ThemesManager::createIcon(QLatin1String("window-new-private")), tr("New private window"), applicationFilePath, QStringList(QLatin1String("--new-private-window")));
 		tasks->setVisible(true);
 	}
+
+	//Application::getInstance()->sete
+	//qApp->setEventFilter(&WindowsPlatformIntegration::eventFilter);
 }
 
 void WindowsPlatformIntegration::timerEvent(QTimerEvent *event)
@@ -624,6 +627,28 @@ bool WindowsPlatformIntegration::isDefaultBrowser() const
 	isDefault &= (registry.value(QLatin1String("Clients/StartmenuInternet/."), QString()).toString() == m_registrationIdentifier);
 
 	return isDefault;
+}
+
+bool WindowsPlatformIntegration::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+{
+	static unsigned int taskBarCreatedId = WM_NULL;
+
+	MSG* recievedMessage = static_cast<MSG*>(message);
+
+	if (taskBarCreatedId == WM_NULL)
+	{
+		taskBarCreatedId = RegisterWindowMessage(QString("TaskbarButtonCreated").toStdWString().c_str() /*L"TaskbarButtonCreated"*/);
+
+		return false;
+	}
+
+	if (recievedMessage->message == taskBarCreatedId && recievedMessage->hwnd == (HWND)Application::getInstance()->getWindow()->winId() /*getInstance()->m_parentWidget->winId()*/)
+	{
+		//getInstance()->allocTaskbar();
+		return true;
+	}
+
+	return false;
 }
 
 }
