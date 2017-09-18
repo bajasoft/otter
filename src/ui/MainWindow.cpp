@@ -40,6 +40,7 @@
 #include "../core/BookmarksManager.h"
 #include "../core/GesturesManager.h"
 #include "../core/InputInterpreter.h"
+#include "../core/PlatformIntegration.h"
 #include "../core/SessionModel.h"
 #include "../core/SettingsManager.h"
 #include "../core/ThemesManager.h"
@@ -1245,6 +1246,8 @@ void MainWindow::addWindow(Window *window, SessionsManager::OpenHints hints, int
 
 	m_tabBar->addTab(index, window);
 	m_workspace->addWindow(window, state, isAlwaysOnTop);
+
+	Application::getInstance()->getPlatformIntegration()->addTabThumbnail(window->topLevelWidget());
 
 	if (m_tabSwitchingOrderIndex >= 0)
 	{

@@ -85,13 +85,15 @@ enum RegistrationType
 
 class MainWindow;
 
-class WindowsPlatformIntegration : public PlatformIntegration
+class WindowsPlatformIntegration : public PlatformIntegration/*, public QAbstractNativeEventFilter*/
 {
 	Q_OBJECT
 
 public:
 	explicit WindowsPlatformIntegration(Application *parent);
 
+	void addTabThumbnail(QWidget* widget) const override;
+	void createTaskBar();
 	void runApplication(const QString &command, const QUrl &url = {}) const override;
 	void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const override;
 	Style* createStyle(const QString &name) const override;
@@ -100,6 +102,7 @@ public:
 	bool canShowNotifications() const override;
 	bool canSetAsDefaultBrowser() const override;
 	bool isDefaultBrowser() const override;
+	//bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
 
 public slots:
 	void showNotification(Notification *notification) override;
@@ -107,11 +110,12 @@ public slots:
 
 protected:
 	void timerEvent(QTimerEvent *event);
+	//void enableWidgetIconicPreview(QWidget* widget);
 	void getApplicationInformation(ApplicationInformation &information);
 	QString getUpdaterBinary() const override;
 	bool registerToSystem();
 	bool isBrowserRegistered() const;
-	bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
+	
 
 protected slots:
 	void removeWindow(MainWindow *window);
@@ -124,6 +128,7 @@ private:
 	QSettings m_propertiesRegistration;
 	QVector<QPair<QString, RegistrationType> > m_registrationPairs;
 	QHash<MainWindow*, QWinTaskbarButton*> m_taskbarButtons;
+	ITaskbarList4* m_taskbar;
 	int m_cleanupTimer;
 
 	static QProcessEnvironment m_environment;

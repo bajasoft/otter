@@ -37,6 +37,11 @@ PlatformIntegration::PlatformIntegration(Application *parent) : QObject(parent)
 {
 }
 
+void PlatformIntegration::addTabThumbnail(QWidget* widget) const
+{
+	Q_UNUSED(widget)
+}
+
 void PlatformIntegration::runApplication(const QString &command, const QUrl &url) const
 {
 	Q_UNUSED(command)
@@ -139,11 +144,6 @@ bool PlatformIntegration::installUpdate() const
 
 	Updater::clearUpdate();
 
-	return false;
-}
-
-bool PlatformIntegration::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
-{
 	return false;
 }
 

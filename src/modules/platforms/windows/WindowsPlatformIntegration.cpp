@@ -20,6 +20,7 @@
 
 #include "WindowsPlatformIntegration.h"
 #include "WindowsPlatformStyle.h"
+#include "WindowsNativeEventFilter.h"
 #include "../../../core/Application.h"
 #include "../../../core/Console.h"
 #include "../../../core/NotificationsManager.h"
@@ -80,6 +81,9 @@ WindowsPlatformIntegration::WindowsPlatformIntegration(Application *parent) : Pl
 
 	//Application::getInstance()->sete
 	//qApp->setEventFilter(&WindowsPlatformIntegration::eventFilter);
+	WindowsNativeEventFilter eventFilter;
+
+	Application::getInstance()->installNativeEventFilter(&eventFilter);
 }
 
 void WindowsPlatformIntegration::timerEvent(QTimerEvent *event)
@@ -92,6 +96,39 @@ void WindowsPlatformIntegration::timerEvent(QTimerEvent *event)
 		m_environment.clear();
 	}
 }
+
+void WindowsPlatformIntegration::addTabThumbnail(QWidget* widget) const
+{
+	if (m_taskbar)
+	{
+		m_taskbar->RegisterTab((HWND)widget->winId(), (HWND)widget->parentWidget()->winId());
+		m_taskbar->SetTabOrder((HWND)widget->winId(), NULL);
+		m_taskbar->SetTabActive(NULL, (HWND)widget->winId(), 0);
+	}
+}
+
+void WindowsPlatformIntegration::createTaskBar()
+{
+	HRESULT result = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, (LPVOID*)m_taskbar /*reinterpret_cast<void**> (&(m_taskbar))*/);
+	
+	if (result == S_OK)
+	{
+		result = m_taskbar->HrInit();
+	
+		if (result != S_OK)
+		{
+			m_taskbar = nullptr;
+		}
+	}
+}
+
+//void WindowsPlatformIntegration::enableWidgetIconicPreview(QWidget* widget) {
+//	BOOL enable = TRUE;
+//
+//	DwmSetWindowAttribute(widget->winId(), DWMWA_FORCE_ICONIC_REPRESENTATION, &enable, sizeof(enable));
+//
+//	DwmSetWindowAttribute(widget->winId(), DWMWA_HAS_ICONIC_BITMAP, &enable, sizeof(enable));
+//}
 
 void WindowsPlatformIntegration::removeWindow(MainWindow *window)
 {
@@ -629,26 +666,37 @@ bool WindowsPlatformIntegration::isDefaultBrowser() const
 	return isDefault;
 }
 
-bool WindowsPlatformIntegration::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
-{
-	static unsigned int taskBarCreatedId = WM_NULL;
-
-	MSG* recievedMessage = static_cast<MSG*>(message);
-
-	if (taskBarCreatedId == WM_NULL)
-	{
-		taskBarCreatedId = RegisterWindowMessage(QString("TaskbarButtonCreated").toStdWString().c_str() /*L"TaskbarButtonCreated"*/);
-
-		return false;
-	}
-
-	if (recievedMessage->message == taskBarCreatedId && recievedMessage->hwnd == (HWND)Application::getInstance()->getWindow()->winId() /*getInstance()->m_parentWidget->winId()*/)
-	{
-		//getInstance()->allocTaskbar();
-		return true;
-	}
-
-	return false;
-}
+//bool WindowsPlatformIntegration::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+//{
+//	static unsigned int taskBarCreatedId = WM_NULL;
+//
+//	MSG* recievedMessage = static_cast<MSG*>(message);
+//
+//	if (taskBarCreatedId == WM_NULL)
+//	{
+//		taskBarCreatedId = RegisterWindowMessage(QString("TaskbarButtonCreated").toStdWString().c_str());
+//
+//		return false;
+//	}
+//
+//	if (recievedMessage->message == taskBarCreatedId && recievedMessage->hwnd == (HWND)Application::getInstance()->getWindow()->winId() /*getInstance()->m_parentWidget->winId()*/)
+//	{
+//		HRESULT result = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, (LPVOID*)m_taskbar /*reinterpret_cast<void**> (&(m_taskbar))*/);
+//
+//		if (result == S_OK)
+//		{
+//			result = m_taskbar->HrInit();
+//
+//			if (result != S_OK)
+//			{
+//				m_taskbar = nullptr;
+//			}
+//		}
+//
+//		return true;
+//	}
+//
+//	return false;
+//}
 
 }

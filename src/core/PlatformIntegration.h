@@ -40,6 +40,7 @@ class PlatformIntegration : public QObject
 public:
 	explicit PlatformIntegration(Application *parent);
 
+	virtual void addTabThumbnail(QWidget* widget) const;
 	virtual void runApplication(const QString &command, const QUrl &url = {}) const;
 	virtual void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const;
 	virtual Style* createStyle(const QString &name) const;
@@ -54,7 +55,6 @@ public:
 public slots:
 	virtual void showNotification(Notification *notification);
 	virtual bool setAsDefaultBrowser();
-	virtual bool nativeEventFilter(const QByteArray &eventType, void *message, long *result);
 
 protected:
 	virtual QString getUpdaterBinary() const;

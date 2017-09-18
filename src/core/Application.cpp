@@ -444,8 +444,6 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv), Act
 	m_platformIntegration = new FreeDesktopOrgPlatformIntegration(this);
 #endif
 
-	installNativeEventFilter(m_platformIntegration->nativeEventFilter);
-
 	if (Updater::isReadyToInstall())
 	{
 		m_isUpdating = Updater::installUpdate();
