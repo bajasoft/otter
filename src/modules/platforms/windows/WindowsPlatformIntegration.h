@@ -21,6 +21,7 @@
 #ifndef OTTER_WINDOWSPLATFORMINTEGRATION_H
 #define OTTER_WINDOWSPLATFORMINTEGRATION_H
 
+#include "WindowsNativeEventFilter.h"
 #include "../../../core/PlatformIntegration.h"
 
 #include <QtCore/QProcessEnvironment>
@@ -85,17 +86,18 @@ enum RegistrationType
 
 class MainWindow;
 
-class WindowsPlatformIntegration : public PlatformIntegration/*, public QAbstractNativeEventFilter*/
+class WindowsPlatformIntegration : public PlatformIntegration
 {
 	Q_OBJECT
 
 public:
 	explicit WindowsPlatformIntegration(Application *parent);
 
-	void addTabThumbnail(QWidget* widget) const override;
+	void addTabThumbnail(Window* window) override;
 	void createTaskBar();
 	void runApplication(const QString &command, const QUrl &url = {}) const override;
 	void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const override;
+	void setIconicThumbnail(HWND hwnd, QSize size);
 	Style* createStyle(const QString &name) const override;
 	QVector<ApplicationInformation> getApplicationsForMimeType(const QMimeType &mimeType) override;
 	QString getPlatformName() const override;
@@ -110,8 +112,9 @@ public slots:
 
 protected:
 	void timerEvent(QTimerEvent *event);
-	//void enableWidgetIconicPreview(QWidget* widget);
+	void enableWidgetIconicPreview(QWidget* widget);
 	void getApplicationInformation(ApplicationInformation &information);
+	void setWindowAttribute(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
 	QString getUpdaterBinary() const override;
 	bool registerToSystem();
 	bool isBrowserRegistered() const;
@@ -128,10 +131,14 @@ private:
 	QSettings m_propertiesRegistration;
 	QVector<QPair<QString, RegistrationType> > m_registrationPairs;
 	QHash<MainWindow*, QWinTaskbarButton*> m_taskbarButtons;
+	WindowsNativeEventFilter m_eventFilter;
 	ITaskbarList4* m_taskbar;
 	int m_cleanupTimer;
 
 	static QProcessEnvironment m_environment;
+
+signals:
+	void thumbnailsInitialized();
 };
 
 }

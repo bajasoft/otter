@@ -20,7 +20,6 @@
 
 #include "WindowsPlatformIntegration.h"
 #include "WindowsPlatformStyle.h"
-#include "WindowsNativeEventFilter.h"
 #include "../../../core/Application.h"
 #include "../../../core/Console.h"
 #include "../../../core/NotificationsManager.h"
@@ -30,8 +29,10 @@
 #include "../../../ui/MainWindow.h"
 #include "../../../ui/NotificationDialog.h"
 #include "../../../ui/TrayIcon.h"
+#include "../../../ui/Window.h"
 
 #include <windows.h>
+//#include <qwinfunctions.h>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
@@ -41,15 +42,43 @@
 #include <QtGui/QDesktopServices>
 #include <QtGui/QDrag>
 #include <QtWidgets/QFileIconProvider>
+//#include <QtWinExtras/QtWin>
 #include <QtWinExtras/QWinJumpList>
 #include <QtWinExtras/QWinJumpListCategory>
 
 namespace Otter
 {
 
+extern "C"
+{
+	typedef HRESULT(WINAPI *t_DwmInvalidateIconicBitmaps)(HWND hwnd);
+	typedef HRESULT(WINAPI *t_DwmSetIconicThumbnail)(HWND hwnd, HBITMAP hbmp, DWORD dwSITFlags);
+	typedef HRESULT(WINAPI *t_DwmSetIconicLivePreviewBitmap)(HWND hwnd, HBITMAP hbmp, POINT *pptClient, DWORD dwSITFlags);
+	typedef HRESULT(WINAPI *t_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
+}
+
+// Window attributes
+enum DWMWINDOWATTRIBUTE
+{
+	DWMWA_NCRENDERING_ENABLED = 1,      // [get] Is non-client rendering enabled/disabled
+	DWMWA_NCRENDERING_POLICY,           // [set] Non-client rendering policy
+	DWMWA_TRANSITIONS_FORCEDISABLED,    // [set] Potentially enable/forcibly disable transitions
+	DWMWA_ALLOW_NCPAINT,                // [set] Allow contents rendered in the non-client area to be visible on the DWM-drawn frame.
+	DWMWA_CAPTION_BUTTON_BOUNDS,        // [get] Bounds of the caption button area in window-relative space.
+	DWMWA_NONCLIENT_RTL_LAYOUT,         // [set] Is non-client content RTL mirrored
+	DWMWA_FORCE_ICONIC_REPRESENTATION,  // [set] Force this window to display iconic thumbnails.
+	DWMWA_FLIP3D_POLICY,                // [set] Designates how Flip3D will treat the window.
+	DWMWA_EXTENDED_FRAME_BOUNDS,        // [get] Gets the extended frame bounds rectangle in screen space
+	DWMWA_HAS_ICONIC_BITMAP,            // [set] Indicates an available bitmap when there is no better thumbnail representation.
+	DWMWA_DISALLOW_PEEK,                // [set] Don't invoke Peek on the window.
+	DWMWA_EXCLUDED_FROM_PEEK,           // [set] LivePreview exclusion information
+	DWMWA_LAST
+};
+
 QProcessEnvironment WindowsPlatformIntegration::m_environment;
 
 WindowsPlatformIntegration::WindowsPlatformIntegration(Application *parent) : PlatformIntegration(parent),
+	m_taskbar(nullptr),
 	m_registrationIdentifier(QLatin1String("OtterBrowser")),
 	m_applicationFilePath(QDir::toNativeSeparators(QCoreApplication::applicationFilePath())),
 	m_applicationRegistration(QLatin1String("HKEY_CURRENT_USER\\Software\\RegisteredApplications"), QSettings::NativeFormat),
@@ -79,11 +108,7 @@ WindowsPlatformIntegration::WindowsPlatformIntegration(Application *parent) : Pl
 		tasks->setVisible(true);
 	}
 
-	//Application::getInstance()->sete
-	//qApp->setEventFilter(&WindowsPlatformIntegration::eventFilter);
-	WindowsNativeEventFilter eventFilter;
-
-	Application::getInstance()->installNativeEventFilter(&eventFilter);
+	Application::getInstance()->installNativeEventFilter(&m_eventFilter);
 }
 
 void WindowsPlatformIntegration::timerEvent(QTimerEvent *event)
@@ -97,11 +122,16 @@ void WindowsPlatformIntegration::timerEvent(QTimerEvent *event)
 	}
 }
 
-void WindowsPlatformIntegration::addTabThumbnail(QWidget* widget) const
+void WindowsPlatformIntegration::addTabThumbnail(Window* window)
 {
+	QWidget* widget(window->topLevelWidget());
+
 	if (m_taskbar)
 	{
-		m_taskbar->RegisterTab((HWND)widget->winId(), (HWND)widget->parentWidget()->winId());
+		enableWidgetIconicPreview(widget);
+
+		qDebug() << "added";
+		m_taskbar->RegisterTab((HWND)widget->winId(), (HWND)window->getMainWindow()->winId());
 		m_taskbar->SetTabOrder((HWND)widget->winId(), NULL);
 		m_taskbar->SetTabActive(NULL, (HWND)widget->winId(), 0);
 	}
@@ -109,7 +139,7 @@ void WindowsPlatformIntegration::addTabThumbnail(QWidget* widget) const
 
 void WindowsPlatformIntegration::createTaskBar()
 {
-	HRESULT result = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, (LPVOID*)m_taskbar /*reinterpret_cast<void**> (&(m_taskbar))*/);
+	HRESULT result = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, /*(LPVOID*)m_taskbar*/ reinterpret_cast<void**> (&(m_taskbar)));
 	
 	if (result == S_OK)
 	{
@@ -119,16 +149,74 @@ void WindowsPlatformIntegration::createTaskBar()
 		{
 			m_taskbar = nullptr;
 		}
+		else {
+			emit thumbnailsInitialized();
+		}
 	}
 }
 
-//void WindowsPlatformIntegration::enableWidgetIconicPreview(QWidget* widget) {
-//	BOOL enable = TRUE;
-//
-//	DwmSetWindowAttribute(widget->winId(), DWMWA_FORCE_ICONIC_REPRESENTATION, &enable, sizeof(enable));
-//
-//	DwmSetWindowAttribute(widget->winId(), DWMWA_HAS_ICONIC_BITMAP, &enable, sizeof(enable));
-//}
+void WindowsPlatformIntegration::enableWidgetIconicPreview(QWidget* widget)
+{
+	BOOL enable = TRUE;
+
+	setWindowAttribute((HWND)widget->winId(), DWMWA_FORCE_ICONIC_REPRESENTATION, &enable, sizeof(enable));
+	setWindowAttribute((HWND)widget->winId(), DWMWA_HAS_ICONIC_BITMAP, &enable, sizeof(enable));
+}
+
+void WindowsPlatformIntegration::setWindowAttribute(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute)
+{
+	HMODULE shell;
+
+	shell = LoadLibrary(L"dwmapi.dll");
+	if (shell) {
+		t_DwmSetWindowAttribute set_window_attribute = reinterpret_cast<t_DwmSetWindowAttribute>(GetProcAddress(shell, "DwmSetWindowAttribute"));
+		set_window_attribute(hwnd, dwAttribute, pvAttribute, cbAttribute);
+
+		FreeLibrary(shell);
+	}
+}
+
+void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
+{
+	QWidget* widget(nullptr);
+	const QVector<MainWindow*> windows(Application::getWindows());
+
+	for (int i = 0; i < windows.count(); ++i)
+	{
+		for (int j = 0; j < windows.at(i)->getWindowCount(); ++j)
+		{
+			qDebug() << "searching " << hwnd << " - " << (HWND)windows.at(i)->getWindowByIndex(j)->winId();
+			if ((HWND)windows.at(i)->getWindowByIndex(j)->winId() == hwnd)
+			{
+				qDebug() << "found! " << hwnd;
+				widget = windows.at(i)->getWindowByIndex(j)->topLevelWidget();
+			}
+		}
+	}
+
+	if (widget)
+	{
+		QPixmap thumbnail = QPixmap::grabWidget(widget).scaled(size, Qt::KeepAspectRatio);
+
+		//QPixmap::Alpha in case the image has transparent regions
+		HBITMAP hbitmap = QtWin::toHBITMAP(thumbnail); // thumbnail.toWinHBITMAP(QPixmap::Alpha);
+		//QtWin::toHBITMAP
+		//DwmSetIconicThumbnail(id, hbitmap, 0);
+
+		HMODULE shell;
+
+		shell = LoadLibrary(L"dwmapi.dll");
+		if (shell) {
+			t_DwmSetIconicThumbnail set_iconic_thumbnail = reinterpret_cast<t_DwmSetIconicThumbnail>(GetProcAddress(shell, "DwmSetIconicThumbnail"));
+			set_iconic_thumbnail(hwnd, hbitmap, 0);
+
+			FreeLibrary(shell);
+		}
+
+		
+		DeleteObject(hbitmap);
+	}
+}
 
 void WindowsPlatformIntegration::removeWindow(MainWindow *window)
 {

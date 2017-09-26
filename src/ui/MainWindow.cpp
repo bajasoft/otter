@@ -1247,8 +1247,6 @@ void MainWindow::addWindow(Window *window, SessionsManager::OpenHints hints, int
 	m_tabBar->addTab(index, window);
 	m_workspace->addWindow(window, state, isAlwaysOnTop);
 
-	Application::getInstance()->getPlatformIntegration()->addTabThumbnail(window->topLevelWidget());
-
 	if (m_tabSwitchingOrderIndex >= 0)
 	{
 		m_tabSwitchingOrderList.append(window->getIdentifier());

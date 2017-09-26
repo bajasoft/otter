@@ -37,9 +37,9 @@ PlatformIntegration::PlatformIntegration(Application *parent) : QObject(parent)
 {
 }
 
-void PlatformIntegration::addTabThumbnail(QWidget* widget) const
+void PlatformIntegration::addTabThumbnail(Window* window)
 {
-	Q_UNUSED(widget)
+	Q_UNUSED(window)
 }
 
 void PlatformIntegration::runApplication(const QString &command, const QUrl &url) const

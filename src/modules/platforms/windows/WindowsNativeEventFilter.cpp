@@ -62,6 +62,20 @@ bool WindowsNativeEventFilter::nativeEventFilter(const QByteArray &eventType, vo
 		return true;
 	}
 
+	switch (recievedMessage->message)
+	{
+	case WM_DWMSENDICONICTHUMBNAIL:
+
+		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->setIconicThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)));
+
+		//if (recievedMessage->hwnd == Application::getInstance()->winId())
+		//	return false;
+
+		//Application::getInstance()->getWindow()->setPeekBitmap(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)));
+
+		return true;
+	}
+
 	return false;
 }
 

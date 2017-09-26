@@ -491,6 +491,7 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv), Act
 
 	connect(SettingsManager::getInstance(), SIGNAL(optionChanged(int,QVariant)), this, SLOT(handleOptionChanged(int,QVariant)));
 	connect(this, SIGNAL(aboutToQuit()), this, SLOT(handleAboutToQuit()));
+	connect(m_platformIntegration, SIGNAL(thumbnailsInitialized()), this, SLOT(fillTaskbar())); // const QVector<MainWindow*> windows(Application::getWindows());
 }
 
 Application::~Application()
@@ -498,6 +499,17 @@ Application::~Application()
 	for (int i = 0; i < m_windows.count(); ++i)
 	{
 		m_windows.at(i)->deleteLater();
+	}
+}
+
+void Application::fillTaskbar()
+{
+	for (int i = 0; i < m_windows.count(); ++i)
+	{
+		for (int j = 0; j < m_windows.at(i)->getWindowCount(); ++j)
+		{
+			m_platformIntegration->addTabThumbnail(m_windows.at(i)->getWindowByIndex(j));
+		}
 	}
 }
 

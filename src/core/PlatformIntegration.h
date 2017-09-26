@@ -32,6 +32,7 @@ struct ApplicationInformation;
 class Application;
 class Notification;
 class Style;
+class Window;
 
 class PlatformIntegration : public QObject
 {
@@ -40,7 +41,7 @@ class PlatformIntegration : public QObject
 public:
 	explicit PlatformIntegration(Application *parent);
 
-	virtual void addTabThumbnail(QWidget* widget) const;
+	virtual void addTabThumbnail(Window* window);
 	virtual void runApplication(const QString &command, const QUrl &url = {}) const;
 	virtual void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const;
 	virtual Style* createStyle(const QString &name) const;

@@ -96,6 +96,7 @@ protected slots:
 	void handleNewConnection();
 	void handleUpdateCheckResult(const QVector<UpdateChecker::UpdateInformation> &availableUpdates);
 	void showUpdateDetails();
+	void fillTaskbar();
 
 private:
 	static Application *m_instance;
