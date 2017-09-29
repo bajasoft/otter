@@ -1,6 +1,6 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
-* Copyright (C) 2014 - 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2014 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 * Copyright (C) 2016 - 2017 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@
 #include "../../../ui/Window.h"
 
 #include <windows.h>
-//#include <qwinfunctions.h>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
@@ -42,7 +41,6 @@
 #include <QtGui/QDesktopServices>
 #include <QtGui/QDrag>
 #include <QtWidgets/QFileIconProvider>
-//#include <QtWinExtras/QtWin>
 #include <QtWinExtras/QWinJumpList>
 #include <QtWinExtras/QWinJumpListCategory>
 
@@ -124,17 +122,26 @@ void WindowsPlatformIntegration::timerEvent(QTimerEvent *event)
 
 void WindowsPlatformIntegration::addTabThumbnail(Window* window)
 {
-	QWidget* widget(window->topLevelWidget());
-
-	if (m_taskbar)
+	if (!m_taskbar)
 	{
-		enableWidgetIconicPreview(widget);
-
-		qDebug() << "added";
-		m_taskbar->RegisterTab((HWND)widget->winId(), (HWND)window->getMainWindow()->winId());
-		m_taskbar->SetTabOrder((HWND)widget->winId(), NULL);
-		m_taskbar->SetTabActive(NULL, (HWND)widget->winId(), 0);
+		return;
 	}
+
+	TaskbarTab* tab = new TaskbarTab();
+	QWidget* widget(window->getWebWidget() == nullptr ? qobject_cast<QWidget*>(window->getContentsWidget()) : window->getWebWidget());
+	
+	tab->m_widget = widget;
+	tab->m_tab_widget = new QWidget();
+	tab->m_tab_widget->setWindowTitle(window->windowTitle());
+	tab->m_tab_widget->setWindowIcon(window->windowIcon().isNull() ? widget->windowIcon() : window->windowIcon());
+
+	enableWidgetIconicPreview(tab->m_tab_widget);
+
+	m_tabs.append(tab);
+
+	m_taskbar->RegisterTab((HWND)tab->m_tab_widget->winId(), (HWND)window->getMainWindow()->winId());
+	m_taskbar->SetTabOrder((HWND)tab->m_tab_widget->winId(), NULL);
+	m_taskbar->SetTabActive(NULL, (HWND)tab->m_tab_widget->winId(), 0);
 }
 
 void WindowsPlatformIntegration::createTaskBar()
@@ -179,30 +186,33 @@ void WindowsPlatformIntegration::setWindowAttribute(HWND hwnd, DWORD dwAttribute
 void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
 {
 	QWidget* widget(nullptr);
-	const QVector<MainWindow*> windows(Application::getWindows());
 
-	for (int i = 0; i < windows.count(); ++i)
+	for (int i = 0; i < m_tabs.count(); ++i)
 	{
-		for (int j = 0; j < windows.at(i)->getWindowCount(); ++j)
+		if ((HWND)m_tabs.at(i)->m_tab_widget->winId() == hwnd)
 		{
-			qDebug() << "searching " << hwnd << " - " << (HWND)windows.at(i)->getWindowByIndex(j)->winId();
-			if ((HWND)windows.at(i)->getWindowByIndex(j)->winId() == hwnd)
-			{
-				qDebug() << "found! " << hwnd;
-				widget = windows.at(i)->getWindowByIndex(j)->topLevelWidget();
-			}
+			widget = m_tabs.at(i)->m_widget;
 		}
 	}
 
 	if (widget)
 	{
-		QPixmap thumbnail = QPixmap::grabWidget(widget).scaled(size, Qt::KeepAspectRatio);
+		WebWidget* webWidget = qobject_cast<WebWidget*>(widget);
+		
+		QPixmap thumbnail;
 
-		//QPixmap::Alpha in case the image has transparent regions
-		HBITMAP hbitmap = QtWin::toHBITMAP(thumbnail); // thumbnail.toWinHBITMAP(QPixmap::Alpha);
-		//QtWin::toHBITMAP
-		//DwmSetIconicThumbnail(id, hbitmap, 0);
+		if (webWidget != nullptr)
+		{
+			thumbnail = webWidget->createThumbnail();
+		}
+		else
+		{
+			thumbnail = QPixmap::grabWidget(widget).scaled(size, Qt::KeepAspectRatio);
+		}
 
+
+		//QPixmap thumbnail = QPixmap::grabWidget(widget).scaled(size, Qt::KeepAspectRatio);
+		HBITMAP hbitmap = QtWin::toHBITMAP(thumbnail);
 		HMODULE shell;
 
 		shell = LoadLibrary(L"dwmapi.dll");
@@ -753,38 +763,5 @@ bool WindowsPlatformIntegration::isDefaultBrowser() const
 
 	return isDefault;
 }
-
-//bool WindowsPlatformIntegration::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
-//{
-//	static unsigned int taskBarCreatedId = WM_NULL;
-//
-//	MSG* recievedMessage = static_cast<MSG*>(message);
-//
-//	if (taskBarCreatedId == WM_NULL)
-//	{
-//		taskBarCreatedId = RegisterWindowMessage(QString("TaskbarButtonCreated").toStdWString().c_str());
-//
-//		return false;
-//	}
-//
-//	if (recievedMessage->message == taskBarCreatedId && recievedMessage->hwnd == (HWND)Application::getInstance()->getWindow()->winId() /*getInstance()->m_parentWidget->winId()*/)
-//	{
-//		HRESULT result = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, (LPVOID*)m_taskbar /*reinterpret_cast<void**> (&(m_taskbar))*/);
-//
-//		if (result == S_OK)
-//		{
-//			result = m_taskbar->HrInit();
-//
-//			if (result != S_OK)
-//			{
-//				m_taskbar = nullptr;
-//			}
-//		}
-//
-//		return true;
-//	}
-//
-//	return false;
-//}
 
 }

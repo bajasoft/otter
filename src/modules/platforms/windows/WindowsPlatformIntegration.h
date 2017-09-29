@@ -1,6 +1,6 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
-* Copyright (C) 2014 - 2016 Jan Bajer aka bajasoft <jbajer@gmail.com>
+* Copyright (C) 2014 - 2017 Jan Bajer aka bajasoft <jbajer@gmail.com>
 * Copyright (C) 2016 - 2017 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 *
 * This program is free software: you can redistribute it and/or modify
@@ -104,7 +104,6 @@ public:
 	bool canShowNotifications() const override;
 	bool canSetAsDefaultBrowser() const override;
 	bool isDefaultBrowser() const override;
-	//bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
 
 public slots:
 	void showNotification(Notification *notification) override;
@@ -125,12 +124,27 @@ protected slots:
 	void updateTaskbarButtons();
 
 private:
+	struct TaskbarTab {
+		TaskbarTab() : m_widget(NULL), m_tab_widget(NULL) {}
+
+		QPixmap  m_thumbnail;
+		QWidget* m_widget;
+		QWidget* m_tab_widget;
+	};
+
+	enum TABEVENT {
+		TAB_CLICK = 0,
+		TAB_CLOSE = 1,
+		TAB_HOVER = 2
+	};
+
 	QString m_registrationIdentifier;
 	QString m_applicationFilePath;
 	QSettings m_applicationRegistration;
 	QSettings m_propertiesRegistration;
 	QVector<QPair<QString, RegistrationType> > m_registrationPairs;
 	QHash<MainWindow*, QWinTaskbarButton*> m_taskbarButtons;
+	QList<TaskbarTab*> m_tabs;
 	WindowsNativeEventFilter m_eventFilter;
 	ITaskbarList4* m_taskbar;
 	int m_cleanupTimer;

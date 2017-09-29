@@ -491,7 +491,7 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv), Act
 
 	connect(SettingsManager::getInstance(), SIGNAL(optionChanged(int,QVariant)), this, SLOT(handleOptionChanged(int,QVariant)));
 	connect(this, SIGNAL(aboutToQuit()), this, SLOT(handleAboutToQuit()));
-	connect(m_platformIntegration, SIGNAL(thumbnailsInitialized()), this, SLOT(fillTaskbar())); // const QVector<MainWindow*> windows(Application::getWindows());
+	connect(m_platformIntegration, SIGNAL(thumbnailsInitialized()), this, SLOT(fillTaskbar()));
 }
 
 Application::~Application()
