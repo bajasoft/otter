@@ -1247,6 +1247,8 @@ void MainWindow::addWindow(Window *window, SessionsManager::OpenHints hints, int
 	m_tabBar->addTab(index, window);
 	m_workspace->addWindow(window, state, isAlwaysOnTop);
 
+	Application::getInstance()->getPlatformIntegration()->addTabThumbnail(window);
+
 	if (m_tabSwitchingOrderIndex >= 0)
 	{
 		m_tabSwitchingOrderList.append(window->getIdentifier());
@@ -1526,6 +1528,8 @@ void MainWindow::handleWindowClose(Window *window)
 	emit windowRemoved(window->getIdentifier());
 
 	m_windows.remove(window->getIdentifier());
+
+	Application::getInstance()->getPlatformIntegration()->removeTabThumbnail(window);
 
 	if (!m_isPrivate && window->isPrivate())
 	{

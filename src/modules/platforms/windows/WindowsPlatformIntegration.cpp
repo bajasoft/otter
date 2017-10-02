@@ -46,34 +46,49 @@
 
 namespace Otter
 {
-
-extern "C"
-{
-	typedef HRESULT(WINAPI *t_DwmInvalidateIconicBitmaps)(HWND hwnd);
-	typedef HRESULT(WINAPI *t_DwmSetIconicThumbnail)(HWND hwnd, HBITMAP hbmp, DWORD dwSITFlags);
-	typedef HRESULT(WINAPI *t_DwmSetIconicLivePreviewBitmap)(HWND hwnd, HBITMAP hbmp, POINT *pptClient, DWORD dwSITFlags);
-	typedef HRESULT(WINAPI *t_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
-}
-
-// Window attributes
-enum DWMWINDOWATTRIBUTE
-{
-	DWMWA_NCRENDERING_ENABLED = 1,      // [get] Is non-client rendering enabled/disabled
-	DWMWA_NCRENDERING_POLICY,           // [set] Non-client rendering policy
-	DWMWA_TRANSITIONS_FORCEDISABLED,    // [set] Potentially enable/forcibly disable transitions
-	DWMWA_ALLOW_NCPAINT,                // [set] Allow contents rendered in the non-client area to be visible on the DWM-drawn frame.
-	DWMWA_CAPTION_BUTTON_BOUNDS,        // [get] Bounds of the caption button area in window-relative space.
-	DWMWA_NONCLIENT_RTL_LAYOUT,         // [set] Is non-client content RTL mirrored
-	DWMWA_FORCE_ICONIC_REPRESENTATION,  // [set] Force this window to display iconic thumbnails.
-	DWMWA_FLIP3D_POLICY,                // [set] Designates how Flip3D will treat the window.
-	DWMWA_EXTENDED_FRAME_BOUNDS,        // [get] Gets the extended frame bounds rectangle in screen space
-	DWMWA_HAS_ICONIC_BITMAP,            // [set] Indicates an available bitmap when there is no better thumbnail representation.
-	DWMWA_DISALLOW_PEEK,                // [set] Don't invoke Peek on the window.
-	DWMWA_EXCLUDED_FROM_PEEK,           // [set] LivePreview exclusion information
-	DWMWA_LAST
-};
-
 QProcessEnvironment WindowsPlatformIntegration::m_environment;
+
+bool WindowsNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+{
+	static unsigned int taskBarCreatedId = WM_NULL;
+
+	MSG* recievedMessage = static_cast<MSG*>(message);
+
+	if (taskBarCreatedId == WM_NULL)
+	{
+		taskBarCreatedId = RegisterWindowMessage(QString("TaskbarButtonCreated").toStdWString().c_str());
+
+		return false;
+	}
+
+	if (recievedMessage->message == taskBarCreatedId && recievedMessage->hwnd == (HWND)Application::getInstance()->getWindow()->winId())
+	{
+		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->createTaskBar();
+
+		return true;
+	}
+
+	switch (recievedMessage->message)
+	{
+	case WM_DWMSENDICONICTHUMBNAIL:
+
+		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->setIconicThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)));
+
+		return true;
+
+	case WM_ACTIVATE:
+		if (LOWORD(recievedMessage->wParam) == WA_ACTIVE)
+		{
+			// tab click
+			return false;
+		}
+	case WM_CLOSE:
+		// tab close
+		return false;
+	}
+
+	return false;
+}
 
 WindowsPlatformIntegration::WindowsPlatformIntegration(Application *parent) : PlatformIntegration(parent),
 	m_taskbar(nullptr),
@@ -127,57 +142,85 @@ void WindowsPlatformIntegration::addTabThumbnail(Window* window)
 		return;
 	}
 
-	TaskbarTab* tab = new TaskbarTab();
-	QWidget* widget(window->getWebWidget() == nullptr ? qobject_cast<QWidget*>(window->getContentsWidget()) : window->getWebWidget());
-	
-	tab->m_widget = widget;
-	tab->m_tab_widget = new QWidget();
-	tab->m_tab_widget->setWindowTitle(window->windowTitle());
-	tab->m_tab_widget->setWindowIcon(window->windowIcon().isNull() ? widget->windowIcon() : window->windowIcon());
+	TaskbarTab* tab(new TaskbarTab());
+	QWidget* widget(nullptr);
 
-	enableWidgetIconicPreview(tab->m_tab_widget);
+	if (window->getWebWidget() == nullptr)
+	{
+		widget = window->getContentsWidget();
+	}
+	else
+	{
+		widget = window->getWebWidget();
+	}
+
+	tab->widget = widget;
+	tab->tabWidget = new QWidget();
+	tab->tabWidget->setWindowTitle(window->windowTitle());
+	tab->tabWidget->setWindowIcon(window->windowIcon().isNull() ? widget->windowIcon() : window->windowIcon());
+
+	enableWidgetIconicPreview(tab->tabWidget);
 
 	m_tabs.append(tab);
 
-	m_taskbar->RegisterTab((HWND)tab->m_tab_widget->winId(), (HWND)window->getMainWindow()->winId());
-	m_taskbar->SetTabOrder((HWND)tab->m_tab_widget->winId(), NULL);
-	m_taskbar->SetTabActive(NULL, (HWND)tab->m_tab_widget->winId(), 0);
+	m_taskbar->RegisterTab((HWND)tab->tabWidget->winId(), (HWND)window->getMainWindow()->winId());
+	m_taskbar->SetTabOrder((HWND)tab->tabWidget->winId(), NULL);
+	m_taskbar->SetTabActive(NULL, (HWND)tab->tabWidget->winId(), 0);
 }
 
-void WindowsPlatformIntegration::createTaskBar()
+void WindowsPlatformIntegration::removeTabThumbnail(Window* window)
 {
-	HRESULT result = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, /*(LPVOID*)m_taskbar*/ reinterpret_cast<void**> (&(m_taskbar)));
-	
-	if (result == S_OK)
+	for (int i = 0; i < m_tabs.count(); ++i)
 	{
-		result = m_taskbar->HrInit();
-	
-		if (result != S_OK)
+		TaskbarTab* tab(m_tabs.at(i));
+
+		if (tab->widget == window->getContentsWidget() || tab->widget == window->getWebWidget())
 		{
-			m_taskbar = nullptr;
-		}
-		else {
-			emit thumbnailsInitialized();
+			m_taskbar->UnregisterTab((HWND)tab->tabWidget->winId());
+
+			tab->tabWidget->deleteLater();
+
+			m_tabs.removeOne(tab);
+			//m_tabs.removeAt(i);
+
+			return;
 		}
 	}
 }
 
-void WindowsPlatformIntegration::enableWidgetIconicPreview(QWidget* widget)
+void WindowsPlatformIntegration::createTaskBar()
 {
-	BOOL enable = TRUE;
+	HRESULT result(CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, /*(LPVOID*)m_taskbar*/ reinterpret_cast<void**> (&(m_taskbar))));
+	
+	if (result == S_OK)
+	{
+		result = m_taskbar->HrInit();
 
+		if (result == S_OK)
+		{
+			emit thumbnailsInitialized();
+
+			return;
+		}
+	}
+
+	m_taskbar = nullptr;
+}
+
+void WindowsPlatformIntegration::enableWidgetIconicPreview(QWidget* widget, BOOL enable)
+{
 	setWindowAttribute((HWND)widget->winId(), DWMWA_FORCE_ICONIC_REPRESENTATION, &enable, sizeof(enable));
 	setWindowAttribute((HWND)widget->winId(), DWMWA_HAS_ICONIC_BITMAP, &enable, sizeof(enable));
 }
 
 void WindowsPlatformIntegration::setWindowAttribute(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute)
 {
-	HMODULE shell;
+	HMODULE shell(getDWM());
 
-	shell = LoadLibrary(L"dwmapi.dll");
-	if (shell) {
-		t_DwmSetWindowAttribute set_window_attribute = reinterpret_cast<t_DwmSetWindowAttribute>(GetProcAddress(shell, "DwmSetWindowAttribute"));
-		set_window_attribute(hwnd, dwAttribute, pvAttribute, cbAttribute);
+	if (shell)
+	{
+		t_DwmSetWindowAttribute setWindowAttribute(reinterpret_cast<t_DwmSetWindowAttribute>(GetProcAddress(shell, QString("DwmSetWindowAttribute").toLatin1())));
+		setWindowAttribute(hwnd, dwAttribute, pvAttribute, cbAttribute);
 
 		FreeLibrary(shell);
 	}
@@ -185,20 +228,11 @@ void WindowsPlatformIntegration::setWindowAttribute(HWND hwnd, DWORD dwAttribute
 
 void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
 {
-	QWidget* widget(nullptr);
+	QWidget* widget(findTab(hwnd));
 
-	for (int i = 0; i < m_tabs.count(); ++i)
+	if (widget != nullptr)
 	{
-		if ((HWND)m_tabs.at(i)->m_tab_widget->winId() == hwnd)
-		{
-			widget = m_tabs.at(i)->m_widget;
-		}
-	}
-
-	if (widget)
-	{
-		WebWidget* webWidget = qobject_cast<WebWidget*>(widget);
-		
+		WebWidget* webWidget(qobject_cast<WebWidget*>(widget));
 		QPixmap thumbnail;
 
 		if (webWidget != nullptr)
@@ -207,23 +241,25 @@ void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
 		}
 		else
 		{
-			thumbnail = QPixmap::grabWidget(widget).scaled(size, Qt::KeepAspectRatio);
+			thumbnail = widget->grab();
 		}
 
+		if (!thumbnail.isNull())
+		{
+			thumbnail = thumbnail.scaled(size, Qt::KeepAspectRatio);
+		}
 
-		//QPixmap thumbnail = QPixmap::grabWidget(widget).scaled(size, Qt::KeepAspectRatio);
-		HBITMAP hbitmap = QtWin::toHBITMAP(thumbnail);
-		HMODULE shell;
+		HBITMAP hbitmap(QtWin::toHBITMAP(thumbnail));
+		HMODULE shell(getDWM());
 
-		shell = LoadLibrary(L"dwmapi.dll");
-		if (shell) {
-			t_DwmSetIconicThumbnail set_iconic_thumbnail = reinterpret_cast<t_DwmSetIconicThumbnail>(GetProcAddress(shell, "DwmSetIconicThumbnail"));
-			set_iconic_thumbnail(hwnd, hbitmap, 0);
+		if (shell)
+		{
+			t_DwmSetIconicThumbnail setIconicThumbnail(reinterpret_cast<t_DwmSetIconicThumbnail>(GetProcAddress(shell, QString("DwmSetIconicThumbnail").toLatin1())));
+			setIconicThumbnail(hwnd, hbitmap, 0);
 
 			FreeLibrary(shell);
 		}
 
-		
 		DeleteObject(hbitmap);
 	}
 }
@@ -403,6 +439,28 @@ void WindowsPlatformIntegration::startLinkDrag(const QUrl &url, const QString &t
 	drag->setMimeData(mimeData);
 	drag->setPixmap(pixmap);
 	drag->exec(Qt::MoveAction);
+}
+
+QWidget* WindowsPlatformIntegration::findTab(HWND hwnd)
+{
+	QWidget* widget(nullptr);
+
+	for (int i = 0; i < m_tabs.count(); ++i)
+	{
+		if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
+		{
+			widget = m_tabs.at(i)->widget;
+			
+			break;
+		}
+	}
+
+	return widget;
+}
+
+HMODULE WindowsPlatformIntegration::getDWM()
+{
+	return LoadLibrary(QString("dwmapi.dll").toStdWString().c_str());
 }
 
 Style* WindowsPlatformIntegration::createStyle(const QString &name) const

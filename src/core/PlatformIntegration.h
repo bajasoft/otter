@@ -42,6 +42,7 @@ public:
 	explicit PlatformIntegration(Application *parent);
 
 	virtual void addTabThumbnail(Window* window);
+	virtual void removeTabThumbnail(Window* window);
 	virtual void runApplication(const QString &command, const QUrl &url = {}) const;
 	virtual void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const;
 	virtual Style* createStyle(const QString &name) const;

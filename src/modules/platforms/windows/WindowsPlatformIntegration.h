@@ -21,9 +21,9 @@
 #ifndef OTTER_WINDOWSPLATFORMINTEGRATION_H
 #define OTTER_WINDOWSPLATFORMINTEGRATION_H
 
-#include "WindowsNativeEventFilter.h"
 #include "../../../core/PlatformIntegration.h"
 
+#include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QProcessEnvironment>
 #include <QtCore/QSettings>
 #include <QtWinExtras/QtWin>
@@ -62,6 +62,14 @@ enum ACTIVATEOPTIONS
 	AO_NOSPLASHSCREEN = 4
 };
 
+extern "C"
+{
+	typedef HRESULT(WINAPI *t_DwmInvalidateIconicBitmaps)(HWND hwnd);
+	typedef HRESULT(WINAPI *t_DwmSetIconicThumbnail)(HWND hwnd, HBITMAP hbmp, DWORD dwSITFlags);
+	typedef HRESULT(WINAPI *t_DwmSetIconicLivePreviewBitmap)(HWND hwnd, HBITMAP hbmp, POINT *pptClient, DWORD dwSITFlags);
+	typedef HRESULT(WINAPI *t_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
+}
+
 MIDL_INTERFACE("2e941141-7f97-4756-ba1d-9decde894a3d")
 IApplicationActivationManager : public IUnknown
 {
@@ -86,6 +94,14 @@ enum RegistrationType
 
 class MainWindow;
 
+class WindowsNativeEventFilter : public QObject, public QAbstractNativeEventFilter {
+	Q_OBJECT
+
+public:
+	explicit WindowsNativeEventFilter(QObject *parent = 0) : QObject(parent) {}
+	bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
+};
+
 class WindowsPlatformIntegration : public PlatformIntegration
 {
 	Q_OBJECT
@@ -94,6 +110,7 @@ public:
 	explicit WindowsPlatformIntegration(Application *parent);
 
 	void addTabThumbnail(Window* window) override;
+	void removeTabThumbnail(Window* window) override;
 	void createTaskBar();
 	void runApplication(const QString &command, const QUrl &url = {}) const override;
 	void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const override;
@@ -111,9 +128,11 @@ public slots:
 
 protected:
 	void timerEvent(QTimerEvent *event);
-	void enableWidgetIconicPreview(QWidget* widget);
+	void enableWidgetIconicPreview(QWidget* widget, BOOL enable = TRUE);
 	void getApplicationInformation(ApplicationInformation &information);
 	void setWindowAttribute(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
+	QWidget* findTab(HWND hwnd);
+	HMODULE getDWM();
 	QString getUpdaterBinary() const override;
 	bool registerToSystem();
 	bool isBrowserRegistered() const;
@@ -124,18 +143,30 @@ protected slots:
 	void updateTaskbarButtons();
 
 private:
-	struct TaskbarTab {
-		TaskbarTab() : m_widget(NULL), m_tab_widget(NULL) {}
-
-		QPixmap  m_thumbnail;
-		QWidget* m_widget;
-		QWidget* m_tab_widget;
+	enum DWMWINDOWATTRIBUTE
+	{
+		DWMWA_NCRENDERING_ENABLED = 1,      // [get] Is non-client rendering enabled/disabled
+		DWMWA_NCRENDERING_POLICY,           // [set] Non-client rendering policy
+		DWMWA_TRANSITIONS_FORCEDISABLED,    // [set] Potentially enable/forcibly disable transitions
+		DWMWA_ALLOW_NCPAINT,                // [set] Allow contents rendered in the non-client area to be visible on the DWM-drawn frame.
+		DWMWA_CAPTION_BUTTON_BOUNDS,        // [get] Bounds of the caption button area in window-relative space.
+		DWMWA_NONCLIENT_RTL_LAYOUT,         // [set] Is non-client content RTL mirrored
+		DWMWA_FORCE_ICONIC_REPRESENTATION,  // [set] Force this window to display iconic thumbnails.
+		DWMWA_FLIP3D_POLICY,                // [set] Designates how Flip3D will treat the window.
+		DWMWA_EXTENDED_FRAME_BOUNDS,        // [get] Gets the extended frame bounds rectangle in screen space
+		DWMWA_HAS_ICONIC_BITMAP,            // [set] Indicates an available bitmap when there is no better thumbnail representation.
+		DWMWA_DISALLOW_PEEK,                // [set] Don't invoke Peek on the window.
+		DWMWA_EXCLUDED_FROM_PEEK,           // [set] LivePreview exclusion information
+		DWMWA_LAST
 	};
 
-	enum TABEVENT {
-		TAB_CLICK = 0,
-		TAB_CLOSE = 1,
-		TAB_HOVER = 2
+	struct TaskbarTab
+	{
+		TaskbarTab() : widget(nullptr), tabWidget(nullptr) {}
+
+		QPixmap thumbnail;
+		QWidget* widget;
+		QWidget* tabWidget;
 	};
 
 	QString m_registrationIdentifier;

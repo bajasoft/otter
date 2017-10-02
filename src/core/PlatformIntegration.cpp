@@ -42,6 +42,11 @@ void PlatformIntegration::addTabThumbnail(Window* window)
 	Q_UNUSED(window)
 }
 
+void PlatformIntegration::removeTabThumbnail(Window* window)
+{
+	Q_UNUSED(window)
+}
+
 void PlatformIntegration::runApplication(const QString &command, const QUrl &url) const
 {
 	Q_UNUSED(command)

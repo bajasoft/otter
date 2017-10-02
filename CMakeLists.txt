@@ -467,7 +467,6 @@ if (WIN32)
 	set(otter_src
 		${otter_src}
 		otter-browser.rc
-		src/modules/platforms/windows/WindowsNativeEventFilter.cpp
 		src/modules/platforms/windows/WindowsPlatformIntegration.cpp
 		src/modules/platforms/windows/WindowsPlatformStyle.cpp
 	)
