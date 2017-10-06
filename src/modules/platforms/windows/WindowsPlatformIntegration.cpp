@@ -72,18 +72,35 @@ bool WindowsNativeEventFilter::nativeEventFilter(const QByteArray &eventType, vo
 	{
 	case WM_DWMSENDICONICTHUMBNAIL:
 
-		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->setIconicThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)));
+		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->setThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)));
+
+		return true;
+	case WM_DWMSENDICONICLIVEPREVIEWBITMAP:
+		//getInstance()->tabAction(message->hwnd, TAB_HOVER);
+
+		//if (recievedMessage->hwnd == getInstance()->m_parentWidget->winId())
+		//{
+		//	return false;
+		//}
+
+		//getInstance()->setPeekBitmap(recievedMessage->hwnd, getInstance()->m_parentWidget->size(), true);
+
+		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->setThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)), true);
 
 		return true;
 
 	case WM_ACTIVATE:
 		if (LOWORD(recievedMessage->wParam) == WA_ACTIVE)
 		{
-			// tab click
+			qDebug() << "activate " << recievedMessage->hwnd;
+			qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->tabClick(recievedMessage->hwnd);
+
 			return false;
 		}
 	case WM_CLOSE:
-		// tab close
+		qDebug() << "close " << recievedMessage->hwnd;
+		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->tabClose(recievedMessage->hwnd);
+
 		return false;
 	}
 
@@ -101,7 +118,6 @@ WindowsPlatformIntegration::WindowsPlatformIntegration(Application *parent) : Pl
 {
 	if (QSysInfo::windowsVersion() >= QSysInfo::WV_WINDOWS7)
 	{
-		connect(Application::getInstance(), SIGNAL(windowRemoved(MainWindow*)), this, SLOT(removeWindow(MainWindow*)));
 		connect(TransfersManager::getInstance(), SIGNAL(transferChanged(Transfer*)), this, SLOT(updateTaskbarButtons()));
 		connect(TransfersManager::getInstance(), SIGNAL(transferStarted(Transfer*)), this, SLOT(updateTaskbarButtons()));
 		connect(TransfersManager::getInstance(), SIGNAL(transferFinished(Transfer*)), this, SLOT(updateTaskbarButtons()));
@@ -121,6 +137,9 @@ WindowsPlatformIntegration::WindowsPlatformIntegration(Application *parent) : Pl
 		tasks->setVisible(true);
 	}
 
+	connect(Application::getInstance(), SIGNAL(windowAdded(MainWindow*)), this, SLOT(registerWindow(MainWindow*)));
+	connect(Application::getInstance(), SIGNAL(windowRemoved(MainWindow*)), this, SLOT(removeWindow(MainWindow*)));
+
 	Application::getInstance()->installNativeEventFilter(&m_eventFilter);
 }
 
@@ -135,7 +154,7 @@ void WindowsPlatformIntegration::timerEvent(QTimerEvent *event)
 	}
 }
 
-void WindowsPlatformIntegration::addTabThumbnail(Window* window)
+void WindowsPlatformIntegration::addTabThumbnail(quint64 windowIdentifier)
 {
 	if (!m_taskbar)
 	{
@@ -144,6 +163,7 @@ void WindowsPlatformIntegration::addTabThumbnail(Window* window)
 
 	TaskbarTab* tab(new TaskbarTab());
 	QWidget* widget(nullptr);
+	Window* window(findWindow(windowIdentifier));
 
 	if (window->getWebWidget() == nullptr)
 	{
@@ -156,6 +176,7 @@ void WindowsPlatformIntegration::addTabThumbnail(Window* window)
 
 	tab->widget = widget;
 	tab->tabWidget = new QWidget();
+	tab->window = window;
 	tab->tabWidget->setWindowTitle(window->windowTitle());
 	tab->tabWidget->setWindowIcon(window->windowIcon().isNull() ? widget->windowIcon() : window->windowIcon());
 
@@ -168,8 +189,10 @@ void WindowsPlatformIntegration::addTabThumbnail(Window* window)
 	m_taskbar->SetTabActive(NULL, (HWND)tab->tabWidget->winId(), 0);
 }
 
-void WindowsPlatformIntegration::removeTabThumbnail(Window* window)
+void WindowsPlatformIntegration::removeTabThumbnail(quint64 windowIdentifier)
 {
+	Window* window(findWindow(windowIdentifier));
+
 	for (int i = 0; i < m_tabs.count(); ++i)
 	{
 		TaskbarTab* tab(m_tabs.at(i));
@@ -181,7 +204,6 @@ void WindowsPlatformIntegration::removeTabThumbnail(Window* window)
 			tab->tabWidget->deleteLater();
 
 			m_tabs.removeOne(tab);
-			//m_tabs.removeAt(i);
 
 			return;
 		}
@@ -226,9 +248,10 @@ void WindowsPlatformIntegration::setWindowAttribute(HWND hwnd, DWORD dwAttribute
 	}
 }
 
-void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
+void WindowsPlatformIntegration::setThumbnail(HWND hwnd, QSize size, bool window)
 {
 	QWidget* widget(findTab(hwnd));
+	bool isLive(window);
 
 	if (widget != nullptr)
 	{
@@ -246,7 +269,7 @@ void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
 
 		if (!thumbnail.isNull())
 		{
-			thumbnail = thumbnail.scaled(size, Qt::KeepAspectRatio);
+			thumbnail = thumbnail.scaled(isLive ? widget->size() : size, Qt::KeepAspectRatio);
 		}
 
 		HBITMAP hbitmap(QtWin::toHBITMAP(thumbnail));
@@ -254,8 +277,16 @@ void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
 
 		if (shell)
 		{
-			t_DwmSetIconicThumbnail setIconicThumbnail(reinterpret_cast<t_DwmSetIconicThumbnail>(GetProcAddress(shell, QString("DwmSetIconicThumbnail").toLatin1())));
-			setIconicThumbnail(hwnd, hbitmap, 0);
+			if (isLive)
+			{
+				t_DwmSetIconicLivePreviewBitmap setThumbnail(reinterpret_cast<t_DwmSetIconicLivePreviewBitmap>(GetProcAddress(shell, QString("DwmSetIconicLivePreviewBitmap").toLatin1())));
+				setThumbnail(hwnd, hbitmap, 0, 0);
+			}
+			else
+			{
+				t_DwmSetIconicThumbnail setThumbnail(reinterpret_cast<t_DwmSetIconicThumbnail>(GetProcAddress(shell, QString("DwmSetIconicThumbnail").toLatin1())));
+				setThumbnail(hwnd, hbitmap, 0);
+			}
 
 			FreeLibrary(shell);
 		}
@@ -264,12 +295,29 @@ void WindowsPlatformIntegration::setIconicThumbnail(HWND hwnd, QSize size)
 	}
 }
 
+void WindowsPlatformIntegration::registerWindow(MainWindow *window)
+{
+	connect(window, SIGNAL(windowAdded(quint64)), this, SLOT(addTabThumbnail(quint64)));
+	connect(window, SIGNAL(windowRemoved(quint64)), this, SLOT(removeTabThumbnail(quint64)));
+}
+
 void WindowsPlatformIntegration::removeWindow(MainWindow *window)
 {
-	if (m_taskbarButtons.contains(window))
+	if (QSysInfo::windowsVersion() >= QSysInfo::WV_WINDOWS7)
 	{
-		m_taskbarButtons.remove(window);
+		if (m_taskbarButtons.contains(window))
+		{
+			m_taskbarButtons.remove(window);
+		}
 	}
+
+	//for (int i = 0; i < window->getWindowCount(); ++i)
+	//{
+	//	removeTabThumbnail(window->getWindowByIndex(i)->getIdentifier());
+	//}
+
+	disconnect(window, SIGNAL(windowAdded(quint64)), this, SLOT(addTabThumbnail(quint64)));
+	disconnect(window, SIGNAL(windowRemoved(quint64)), this, SLOT(removeTabThumbnail(quint64)));
 }
 
 void WindowsPlatformIntegration::updateTaskbarButtons()
@@ -328,6 +376,32 @@ void WindowsPlatformIntegration::showNotification(Notification *notification)
 	{
 		NotificationDialog *dialog(new NotificationDialog(notification));
 		dialog->show();
+	}
+}
+
+void WindowsPlatformIntegration::tabClick(HWND hwnd)
+{
+	for (int i = 0; i < m_tabs.count(); ++i)
+	{
+		if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
+		{
+			m_tabs.at(i)->window->getMainWindow()->setActiveWindowByIdentifier(m_tabs.at(i)->window->getIdentifier());
+
+			return;
+		}
+	}
+}
+
+void WindowsPlatformIntegration::tabClose(HWND hwnd)
+{
+	for (int i = 0; i < m_tabs.count(); ++i)
+	{
+		if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
+		{
+			m_tabs.at(i)->window->requestClose();
+
+			return;
+		}
 	}
 }
 
@@ -439,6 +513,26 @@ void WindowsPlatformIntegration::startLinkDrag(const QUrl &url, const QString &t
 	drag->setMimeData(mimeData);
 	drag->setPixmap(pixmap);
 	drag->exec(Qt::MoveAction);
+}
+
+Window* WindowsPlatformIntegration::findWindow(quint64 identifier)
+{
+	const QVector<MainWindow*> windows(Application::getWindows());
+	Window* window(nullptr);
+
+	for (int i = 0; i < windows.count(); ++i)
+	{
+		MainWindow *mainWindow(windows.at(i));
+
+		window = mainWindow->getWindowByIdentifier(identifier);
+
+		if (window != nullptr)
+		{
+			break;
+		}
+	}
+
+	return window;
 }
 
 QWidget* WindowsPlatformIntegration::findTab(HWND hwnd)

@@ -37,14 +37,14 @@ PlatformIntegration::PlatformIntegration(Application *parent) : QObject(parent)
 {
 }
 
-void PlatformIntegration::addTabThumbnail(Window* window)
+void PlatformIntegration::addTabThumbnail(/*Window**/ quint64 windowIdentifier)
 {
-	Q_UNUSED(window)
+	Q_UNUSED(windowIdentifier)
 }
 
-void PlatformIntegration::removeTabThumbnail(Window* window)
+void PlatformIntegration::removeTabThumbnail(quint64 windowIdentifier)
 {
-	Q_UNUSED(window)
+	Q_UNUSED(windowIdentifier)
 }
 
 void PlatformIntegration::runApplication(const QString &command, const QUrl &url) const

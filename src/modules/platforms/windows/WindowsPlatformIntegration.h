@@ -109,12 +109,14 @@ class WindowsPlatformIntegration : public PlatformIntegration
 public:
 	explicit WindowsPlatformIntegration(Application *parent);
 
-	void addTabThumbnail(Window* window) override;
-	void removeTabThumbnail(Window* window) override;
 	void createTaskBar();
 	void runApplication(const QString &command, const QUrl &url = {}) const override;
 	void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const override;
-	void setIconicThumbnail(HWND hwnd, QSize size);
+	void setThumbnail(HWND hwnd, QSize size = QSize(), bool window = false);
+	//void setIconicThumbnail(HWND hwnd, QSize size);
+	//void setWindowThumbnail(HWND hwnd);
+	void tabClick(HWND hwnd);
+	void tabClose(HWND hwnd);
 	Style* createStyle(const QString &name) const override;
 	QVector<ApplicationInformation> getApplicationsForMimeType(const QMimeType &mimeType) override;
 	QString getPlatformName() const override;
@@ -123,6 +125,7 @@ public:
 	bool isDefaultBrowser() const override;
 
 public slots:
+	void addTabThumbnail(quint64 windowIdentifier) override;
 	void showNotification(Notification *notification) override;
 	bool setAsDefaultBrowser() override;
 
@@ -131,6 +134,8 @@ protected:
 	void enableWidgetIconicPreview(QWidget* widget, BOOL enable = TRUE);
 	void getApplicationInformation(ApplicationInformation &information);
 	void setWindowAttribute(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
+	
+	Window* findWindow(quint64 identifier);
 	QWidget* findTab(HWND hwnd);
 	HMODULE getDWM();
 	QString getUpdaterBinary() const override;
@@ -139,6 +144,8 @@ protected:
 	
 
 protected slots:
+	void removeTabThumbnail(quint64 windowIdentifier) override;
+	void registerWindow(MainWindow *window);
 	void removeWindow(MainWindow *window);
 	void updateTaskbarButtons();
 
@@ -167,6 +174,7 @@ private:
 		QPixmap thumbnail;
 		QWidget* widget;
 		QWidget* tabWidget;
+		Window* window;
 	};
 
 	QString m_registrationIdentifier;

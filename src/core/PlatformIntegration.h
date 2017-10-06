@@ -41,8 +41,6 @@ class PlatformIntegration : public QObject
 public:
 	explicit PlatformIntegration(Application *parent);
 
-	virtual void addTabThumbnail(Window* window);
-	virtual void removeTabThumbnail(Window* window);
 	virtual void runApplication(const QString &command, const QUrl &url = {}) const;
 	virtual void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const;
 	virtual Style* createStyle(const QString &name) const;
@@ -55,11 +53,16 @@ public:
 	virtual bool installUpdate() const;
 
 public slots:
+	virtual void addTabThumbnail(quint64 windowIdentifier);
 	virtual void showNotification(Notification *notification);
 	virtual bool setAsDefaultBrowser();
 
 protected:
 	virtual QString getUpdaterBinary() const;
+
+protected slots:
+	virtual void removeTabThumbnail(quint64 windowIdentifier);
+
 };
 
 }

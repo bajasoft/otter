@@ -506,9 +506,11 @@ void Application::fillTaskbar()
 {
 	for (int i = 0; i < m_windows.count(); ++i)
 	{
-		for (int j = 0; j < m_windows.at(i)->getWindowCount(); ++j)
+		MainWindow* mainWindow(m_windows.at(i));
+
+		for (int j = 0; j < mainWindow->getWindowCount(); ++j)
 		{
-			m_platformIntegration->addTabThumbnail(m_windows.at(i)->getWindowByIndex(j));
+			m_platformIntegration->addTabThumbnail(mainWindow->getWindowByIndex(j)->getIdentifier());
 		}
 	}
 }
