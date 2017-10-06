@@ -48,6 +48,11 @@ namespace Otter
 {
 QProcessEnvironment WindowsPlatformIntegration::m_environment;
 
+WindowsPlatformIntegration* WindowsNativeEventFilter::getIntegration()
+{
+	return qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration());
+}
+
 bool WindowsNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
 {
 	static unsigned int taskBarCreatedId = WM_NULL;
@@ -63,7 +68,7 @@ bool WindowsNativeEventFilter::nativeEventFilter(const QByteArray &eventType, vo
 
 	if (recievedMessage->message == taskBarCreatedId && recievedMessage->hwnd == (HWND)Application::getInstance()->getWindow()->winId())
 	{
-		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->createTaskBar();
+		getIntegration()->createTaskBar();
 
 		return true;
 	}
@@ -71,35 +76,46 @@ bool WindowsNativeEventFilter::nativeEventFilter(const QByteArray &eventType, vo
 	switch (recievedMessage->message)
 	{
 	case WM_DWMSENDICONICTHUMBNAIL:
+		if (!getIntegration()->getTaskbarTabList().contains(recievedMessage->hwnd))
+		{
+			return false;
+		}
 
-		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->setThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)));
+		getIntegration()->setThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)));
 
 		return true;
 	case WM_DWMSENDICONICLIVEPREVIEWBITMAP:
-		//getInstance()->tabAction(message->hwnd, TAB_HOVER);
+		
+		if (!getIntegration()->getTaskbarTabList().contains(recievedMessage->hwnd))
+		{
+			return false;
+		}
 
-		//if (recievedMessage->hwnd == getInstance()->m_parentWidget->winId())
-		//{
-		//	return false;
-		//}
-
-		//getInstance()->setPeekBitmap(recievedMessage->hwnd, getInstance()->m_parentWidget->size(), true);
-
-		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->setThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)), true);
+		getIntegration()->setThumbnail(recievedMessage->hwnd, QSize(HIWORD(recievedMessage->lParam), LOWORD(recievedMessage->lParam)), true);
 
 		return true;
 
 	case WM_ACTIVATE:
 		if (LOWORD(recievedMessage->wParam) == WA_ACTIVE)
 		{
+			if (!getIntegration()->getTaskbarTabList().contains(recievedMessage->hwnd))
+			{
+				return false;
+			}
+
 			qDebug() << "activate " << recievedMessage->hwnd;
-			qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->tabClick(recievedMessage->hwnd);
+			getIntegration()->tabClick(recievedMessage->hwnd);
 
 			return false;
 		}
 	case WM_CLOSE:
+		if (!getIntegration()->getTaskbarTabList().contains(recievedMessage->hwnd))
+		{
+			return false;
+		}
+
 		qDebug() << "close " << recievedMessage->hwnd;
-		qobject_cast<WindowsPlatformIntegration*>(Application::getInstance()->getPlatformIntegration())->tabClose(recievedMessage->hwnd);
+		getIntegration()->tabClose(recievedMessage->hwnd);
 
 		return false;
 	}
@@ -182,7 +198,7 @@ void WindowsPlatformIntegration::addTabThumbnail(quint64 windowIdentifier)
 
 	enableWidgetIconicPreview(tab->tabWidget);
 
-	m_tabs.append(tab);
+	m_tabs.insert((HWND)tab->tabWidget->winId(), tab);
 
 	m_taskbar->RegisterTab((HWND)tab->tabWidget->winId(), (HWND)window->getMainWindow()->winId());
 	m_taskbar->SetTabOrder((HWND)tab->tabWidget->winId(), NULL);
@@ -193,21 +209,39 @@ void WindowsPlatformIntegration::removeTabThumbnail(quint64 windowIdentifier)
 {
 	Window* window(findWindow(windowIdentifier));
 
-	for (int i = 0; i < m_tabs.count(); ++i)
+	QMap<HWND, TaskbarTab*>::const_iterator tabIterator;
+
+	for (tabIterator = m_tabs.begin(); tabIterator != m_tabs.end(); ++tabIterator)
 	{
-		TaskbarTab* tab(m_tabs.at(i));
+		TaskbarTab* tab(tabIterator.value());
 
 		if (tab->widget == window->getContentsWidget() || tab->widget == window->getWebWidget())
 		{
-			m_taskbar->UnregisterTab((HWND)tab->tabWidget->winId());
+			m_taskbar->UnregisterTab(tabIterator.key());
 
 			tab->tabWidget->deleteLater();
 
-			m_tabs.removeOne(tab);
+			m_tabs.remove(tabIterator.key());
 
 			return;
 		}
 	}
+
+	//for (int i = 0; i < m_tabs.count(); ++i)
+	//{
+	//	TaskbarTab* tab(m_tabs.at(i));
+
+	//	if (tab->widget == window->getContentsWidget() || tab->widget == window->getWebWidget())
+	//	{
+	//		m_taskbar->UnregisterTab((HWND)tab->tabWidget->winId());
+
+	//		tab->tabWidget->deleteLater();
+
+	//		m_tabs.removeOne(tab);
+
+	//		return;
+	//	}
+	//}
 }
 
 void WindowsPlatformIntegration::createTaskBar()
@@ -381,28 +415,42 @@ void WindowsPlatformIntegration::showNotification(Notification *notification)
 
 void WindowsPlatformIntegration::tabClick(HWND hwnd)
 {
-	for (int i = 0; i < m_tabs.count(); ++i)
-	{
-		if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
-		{
-			m_tabs.at(i)->window->getMainWindow()->setActiveWindowByIdentifier(m_tabs.at(i)->window->getIdentifier());
+	TaskbarTab* tab(m_tabs.value(hwnd));
 
-			return;
-		}
+	if (tab != nullptr)
+	{
+		tab->window->getMainWindow()->setActiveWindowByIdentifier(tab->window->getIdentifier());
 	}
+
+	//for (int i = 0; i < m_tabs.count(); ++i)
+	//{
+	//	if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
+	//	{
+	//		m_tabs.at(i)->window->getMainWindow()->setActiveWindowByIdentifier(m_tabs.at(i)->window->getIdentifier());
+
+	//		return;
+	//	}
+	//}
 }
 
 void WindowsPlatformIntegration::tabClose(HWND hwnd)
 {
-	for (int i = 0; i < m_tabs.count(); ++i)
-	{
-		if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
-		{
-			m_tabs.at(i)->window->requestClose();
+	TaskbarTab* tab(m_tabs.value(hwnd));
 
-			return;
-		}
+	if (tab != nullptr)
+	{
+		tab->window->requestClose();
 	}
+
+	//for (int i = 0; i < m_tabs.count(); ++i)
+	//{
+	//	if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
+	//	{
+	//		m_tabs.at(i)->window->requestClose();
+
+	//		return;
+	//	}
+	//}
 }
 
 void WindowsPlatformIntegration::runApplication(const QString &command, const QUrl &url) const
@@ -539,15 +587,22 @@ QWidget* WindowsPlatformIntegration::findTab(HWND hwnd)
 {
 	QWidget* widget(nullptr);
 
-	for (int i = 0; i < m_tabs.count(); ++i)
+	TaskbarTab* tab(m_tabs.value(hwnd));
+
+	if (tab != nullptr)
 	{
-		if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
-		{
-			widget = m_tabs.at(i)->widget;
-			
-			break;
-		}
+		widget = tab->widget;
 	}
+
+	//for (int i = 0; i < m_tabs.count(); ++i)
+	//{
+	//	if ((HWND)m_tabs.at(i)->tabWidget->winId() == hwnd)
+	//	{
+	//		widget = m_tabs.at(i)->widget;
+	//		
+	//		break;
+	//	}
+	//}
 
 	return widget;
 }
@@ -565,6 +620,11 @@ Style* WindowsPlatformIntegration::createStyle(const QString &name) const
 	}
 
 	return nullptr;
+}
+
+QMap<HWND,WindowsPlatformIntegration::TaskbarTab*> WindowsPlatformIntegration::getTaskbarTabList()
+{
+	return m_tabs;
 }
 
 QVector<ApplicationInformation> WindowsPlatformIntegration::getApplicationsForMimeType(const QMimeType &mimeType)

@@ -93,13 +93,18 @@ enum RegistrationType
 };
 
 class MainWindow;
+class WindowsPlatformIntegration;
 
-class WindowsNativeEventFilter : public QObject, public QAbstractNativeEventFilter {
+class WindowsNativeEventFilter : public QObject, public QAbstractNativeEventFilter
+{
 	Q_OBJECT
 
 public:
-	explicit WindowsNativeEventFilter(QObject *parent = 0) : QObject(parent) {}
+	explicit WindowsNativeEventFilter(QObject *parent = nullptr) : QObject(parent) {};
 	bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
+
+protected:
+	WindowsPlatformIntegration* getIntegration();
 };
 
 class WindowsPlatformIntegration : public PlatformIntegration
@@ -109,15 +114,24 @@ class WindowsPlatformIntegration : public PlatformIntegration
 public:
 	explicit WindowsPlatformIntegration(Application *parent);
 
+	struct TaskbarTab
+	{
+		TaskbarTab() : widget(nullptr), tabWidget(nullptr) {}
+
+		QPixmap thumbnail;
+		QWidget* widget;
+		QWidget* tabWidget;
+		Window* window;
+	};
+
 	void createTaskBar();
 	void runApplication(const QString &command, const QUrl &url = {}) const override;
 	void startLinkDrag(const QUrl &url, const QString &title, const QPixmap &pixmap, QObject *parent = nullptr) const override;
 	void setThumbnail(HWND hwnd, QSize size = QSize(), bool window = false);
-	//void setIconicThumbnail(HWND hwnd, QSize size);
-	//void setWindowThumbnail(HWND hwnd);
 	void tabClick(HWND hwnd);
 	void tabClose(HWND hwnd);
 	Style* createStyle(const QString &name) const override;
+	QMap<HWND,TaskbarTab*> getTaskbarTabList();
 	QVector<ApplicationInformation> getApplicationsForMimeType(const QMimeType &mimeType) override;
 	QString getPlatformName() const override;
 	bool canShowNotifications() const override;
@@ -167,23 +181,13 @@ private:
 		DWMWA_LAST
 	};
 
-	struct TaskbarTab
-	{
-		TaskbarTab() : widget(nullptr), tabWidget(nullptr) {}
-
-		QPixmap thumbnail;
-		QWidget* widget;
-		QWidget* tabWidget;
-		Window* window;
-	};
-
 	QString m_registrationIdentifier;
 	QString m_applicationFilePath;
 	QSettings m_applicationRegistration;
 	QSettings m_propertiesRegistration;
 	QVector<QPair<QString, RegistrationType> > m_registrationPairs;
 	QHash<MainWindow*, QWinTaskbarButton*> m_taskbarButtons;
-	QList<TaskbarTab*> m_tabs;
+	QMap<HWND,TaskbarTab*> m_tabs;
 	WindowsNativeEventFilter m_eventFilter;
 	ITaskbarList4* m_taskbar;
 	int m_cleanupTimer;
