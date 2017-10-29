@@ -79,7 +79,7 @@ void UpdateChecker::runUpdateCheck()
 	const int mainVersion(QCoreApplication::applicationVersion().remove(QLatin1Char('.')).toInt());
 	const int subVersion(QString(OTTER_VERSION_WEEKLY).toInt());
 	QVector<UpdateInformation> availableUpdates;
-	QPair<int,int> latestVersion = qMakePair(0, 0);
+	QPair<int,int> latestVersion({0, 0});
 
 	for (int i = 0; i < channels.count(); ++i)
 	{
